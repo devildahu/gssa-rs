@@ -1,4 +1,4 @@
-emulator = mgba-qt
+emulator = mgba
 RUST_SRC = $(shell find src -type f)
 
 .DEFAULT_GOAL = build
