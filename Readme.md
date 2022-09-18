@@ -9,7 +9,7 @@ The Rust port of Generic Space Shooter Advance (tm)
 This is an old project on lifesupports. I've been developping this with
 an antedeluvian version of rust:
 
-- rustc 1.46.0-nightly (2020-06-08)
+- rustc 1.46.0-nightly (2020-06-09)
 - cargo-xbuild 0.5.35
 - arm-none-eabi-{ld,objdump} (GNU ld) 2.32
 
