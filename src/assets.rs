@@ -2,18 +2,33 @@
 
 use core::ops::Range;
 
-/// A Screen Base Block index.
-///
-/// Content of `Sbb` will always be a valid sbb index.
-struct Sbb(usize);
+pub(crate) const HARDCODED_TILEMAP_WIDTH: u16 = 32;
 
+// TODO: type-safe [`Tileset`] to make it impossible to missuse
+// with regard to Color4bit and Color8bit.
+// TODO: probably requires distinguishing "dynamic" images from
+// fixed position images.
 /// An image in a tileset.
 ///
 /// It can be drawn and stuff, while [`Tileset`] is the raw data to load in VRAM.
 pub(crate) struct Image {
-    sbb: Sbb,
-    offset: usize,
-    width: usize,
+    /// The **tileset**'s width.
+    pub(crate) tileset_width: u16,
+    pub(crate) offset: u16,
+    pub(crate) width: usize,
+    pub(crate) height: usize,
+}
+/// Define an [`Image`].
+///
+/// An [`Image`] is not the raw bytes of sprite, it is the offset
+/// and position in the tile buffer of a specific image.
+#[macro_export]
+macro_rules! image {
+    ($file:literal) => {
+        Image {
+            data: include_bytes!(concat!("../resources/", $file)),
+        }
+    };
 }
 
 /// A palette cycle.
@@ -35,7 +50,15 @@ impl Cycle {
 /// A color palette, may be cycling.
 pub(crate) struct Palette {
     data: &'static [u8],
+    #[allow(unused)] // TODO
     cycles: &'static [Cycle],
+}
+impl Palette {
+    // TODO: leaky abstraction, this should only be accessible in
+    // video_control.rs
+    pub(crate) const fn get(&self) -> &'static [u8] {
+        self.data
+    }
 }
 
 /// A set of tiles for text mode.
@@ -43,6 +66,13 @@ pub(crate) struct Palette {
 /// This is the raw data, not the tiles as represented by [`Image`].
 pub(crate) struct Tileset {
     data: &'static [u8],
+}
+impl Tileset {
+    // TODO: leaky abstraction, this should only be accessible in
+    // video_control.rs
+    pub(crate) const fn get(&self) -> &'static [u8] {
+        self.data
+    }
 }
 
 /// Define a [`Palette`].
@@ -232,4 +262,10 @@ pub(crate) mod menu {
     pub(crate) const set: Tileset = tileset!("menuset_til.bin");
     pub(crate) const palette: Palette = palette!("menuset_pal.bin");
     // TODO: all the main menu tileset individual images
+    pub(crate) const title_card: Image = Image {
+        tileset_width: HARDCODED_TILEMAP_WIDTH,
+        offset: 96,
+        width: 17,
+        height: 9,
+    };
 }

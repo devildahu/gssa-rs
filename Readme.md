@@ -6,17 +6,15 @@ The Rust port of Generic Space Shooter Advance (tm)
 
 ### Rust version
 
-This is an old project on lifesupports. I've been developping this with
-an antedeluvian version of rust:
+I've updated the project to use a more recent version of rust
+(previous version was 1.46 for reference).
 
-- rustc 1.46.0-nightly (2020-06-09)
-- cargo-xbuild 0.5.35
+- rustc 1.66.0-nightly (nightly-2022-09-20-x86_64-unknown-linux-gnu)
 - arm-none-eabi-{ld,objdump} (GNU ld) 2.32
 
 ### Steps
 
 1. Devkit-pro. See their [getting started page](https://devkitpro.org/wiki/Getting_Started).
-
 2. `cargo-xbuild`
 
 ```sh
@@ -57,6 +55,22 @@ code was:
 
 - [ ] browse game menu, select ship
 - [ ] start game with selected ship
+- [ ] Use optimized memcpy intrisicts <https://hackmd.io/snq80PgDTPGeC4uzFg67Pw?view>
+- [ ] Split src/video_control.rs into an independent HAL (hardware abstraction layer)
+   - [ ] Add OBJ handling to video_control.rs
+   - [X] Update to latest rustc version, hopefully allowing me to use RA.
+   - [ ] volmatrix.rs as separate individual crate.
+   - [ ] proc/simple macro for generating _1, _2 etc. for typesafe registry values.
+   - [X] derive macro for const DEFAULT (or use a 3rd party crate)
+   - [X] const assert in various places where relevant.
+   - [ ] Tooling to generate 4bpp and 8bpp tilemaps and declare rust structs
+         for image layouts, integrate palette management into asset pipeline
+   - [ ] Palette manager
+   - [ ] Pos with screen size encoded in the type as const generic, to avoid bound
+         checking overhead
+   - [ ] Potentially redesign the video HAL to minimize memory access, and add
+         visibility into usage overhead.
+   - [ ] Implement an audio layer HAL
 - [ ] See game background scroll and palette cycle (with visible tearing)
 - [ ] Pause and resume the game (allowing to move the "pause menu" message)
 - [ ] spawn multiple waves of enemies on a timer, shooting bullets at player

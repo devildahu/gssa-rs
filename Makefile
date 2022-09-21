@@ -1,32 +1,20 @@
-emulator = mgba
+emulator = mgba -l 255
 RUST_SRC = $(shell find src -type f)
+build_flags = 
 
-.DEFAULT_GOAL = build
+.DEFAULT_GOAL: build
+.PHONY: run_cargo
+
+run_cargo:
+	cargo build --release $(build_flags)
+
+target/thumbv4t-none-eabi/release/gssa-rust: run_cargo
+
+build: target/thumbv4t-none-eabi/release/gssa-rust
+	arm-none-eabi-objcopy -O binary \
+		target/thumbv4t-none-eabi/release/gssa-rust \
+		target/gssa-rust.gba
+	gbafix target/gssa-rust.gba
 
 run: build
 	$(emulator) target/gssa-rust.gba
-
-target:
-	mkdir target
-
-target/crt0.o: target crt0.s
-	arm-none-eabi-as crt0.s -o target/crt0.o
-
-target/thumbv4-none-agb/release/gssa-rust:  target/crt0.o thumbv4-none-agb.json $(RUST_SRC)
-	cargo xbuild --target thumbv4-none-agb.json --release
-
-target/thumbv4-none-agb/debug/gssa-rust:  target/crt0.o thumbv4-none-agb.json $(RUST_SRC)
-	cargo xbuild --target thumbv4-none-agb.json
-
-build: target/thumbv4-none-agb/debug/gssa-rust
-	arm-none-eabi-objcopy -O binary \
-		target/thumbv4-none-agb/debug/gssa-rust \
-		target/gssa-rust.gba
-	gbafix target/gssa-rust.gba
-
-release: target/thumbv4-none-agb/release/gssa-rust
-	arm-none-eabi-objcopy -O binary \
-		target/thumbv4-none-agb/release/gssa-rust \
-		target/gssa-rust.gba
-	gbafix target/gssa-rust.gba
-

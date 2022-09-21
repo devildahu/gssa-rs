@@ -2,15 +2,18 @@
 name = "gssa-rust"
 version = "0.1.0"
 authors = ["Nicola Papale"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-gba = { version = "0.5.0-pre", git = "https://github.com/nicopap/gba.git", branch = "const-generics-voladdr" }
-voladdress = "0.3"
-rubidium = { version = "0.0.17", features = ["unsafe_addresses"] }
+[features]
+default = ["runtime_asserts"]
+runtime_asserts = []
 
+[dependencies]
+gba = { version = "0.5.3", path = "../../git/gba" }
+voladdress = "0.4"
+const-default = { version = "1.0", default-features = false, features = ["derive"] }
 
 [profile.release]
 lto = true
