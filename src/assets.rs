@@ -1,119 +1,8 @@
 //! Embedded game asset definitions.
 
-use core::ops::Range;
-
-pub(crate) const HARDCODED_TILEMAP_WIDTH: u16 = 32;
-
-// TODO: type-safe [`Tileset`] to make it impossible to missuse
-// with regard to Color4bit and Color8bit.
-// TODO: probably requires distinguishing "dynamic" images from
-// fixed position images.
-/// An image in a tileset.
-///
-/// It can be drawn and stuff, while [`Tileset`] is the raw data to load in VRAM.
-pub(crate) struct Image {
-    /// The **tileset**'s width.
-    pub(crate) tileset_width: u16,
-    pub(crate) offset: u16,
-    pub(crate) width: usize,
-    pub(crate) height: usize,
-}
-/// Define an [`Image`].
-///
-/// An [`Image`] is not the raw bytes of sprite, it is the offset
-/// and position in the tile buffer of a specific image.
-#[macro_export]
-macro_rules! image {
-    ($file:literal) => {
-        Image {
-            data: include_bytes!(concat!("../resources/", $file)),
-        }
-    };
-}
-
-/// A palette cycle.
-///
-/// This control palette cycling, for nice graphical effects.
-pub(crate) struct Cycle {
-    range: Range<usize>,
-    frames_per_step: usize,
-}
-impl Cycle {
-    pub(crate) const fn new(range: Range<usize>, frames_per_step: usize) -> Self {
-        Self {
-            range,
-            frames_per_step,
-        }
-    }
-}
-
-/// A color palette, may be cycling.
-pub(crate) struct Palette {
-    data: &'static [u8],
-    #[allow(unused)] // TODO
-    cycles: &'static [Cycle],
-}
-impl Palette {
-    // TODO: leaky abstraction, this should only be accessible in
-    // video_control.rs
-    pub(crate) const fn get(&self) -> &'static [u8] {
-        self.data
-    }
-}
-
-/// A set of tiles for text mode.
-///
-/// This is the raw data, not the tiles as represented by [`Image`].
-pub(crate) struct Tileset {
-    data: &'static [u8],
-}
-impl Tileset {
-    // TODO: leaky abstraction, this should only be accessible in
-    // video_control.rs
-    pub(crate) const fn get(&self) -> &'static [u8] {
-        self.data
-    }
-}
-
-/// Define a [`Palette`].
-///
-/// Directly pass the file name, prefixes the path to the resources
-/// directory.
-///
-/// You may define palette cycles by adding arguments in the
-/// following form:
-/// ```text
-/// cycle($range: Range<usize>, $frames_per_step: usize)
-/// ```
-/// Accepts multiple `cycle` arguments to define multiple cycling zones.
-#[macro_export]
-macro_rules! palette {
-    ($file:literal) => {
-        Palette {
-            data: include_bytes!(concat!("../resources/", $file)),
-            cycles: &[],
-        }
-    };
-    ($file:literal, $( cycle ($range:expr, $rate:expr) ),+ $(,)?) => {
-        Palette {
-            data: include_bytes!(concat!("../resources/", $file)),
-            cycles: &[ $( Cycle::new($range, $rate), )+ ],
-        }
-    };
-}
-
-/// Define a [`Tileset`].
-///
-/// Directly pass the file name, prefixes the path to the resources
-/// directory.
-#[macro_export]
-macro_rules! tileset {
-    ($file:literal) => {
-        Tileset {
-            data: include_bytes!(concat!("../resources/", $file)),
-        }
-    };
-}
+use assets::{palette, Cycle, Image, Palette};
+use hal::tileset;
+use hal::video::{colmod, tile::map::HARDCODED_TILEMAP_WIDTH, Tileset};
 
 /// Asset definitions of the main game graphical elements.
 #[allow(non_upper_case_globals)]
@@ -154,9 +43,9 @@ pub(crate) mod space {
         const SMALL: Self = Self::new(1, 1);
     }
     /// The bullet tiles, includes player and enemy bullets.
-    pub(crate) const bullets: Tileset = tileset!("bulls_til.bin");
+    pub(crate) const bullets: Tileset<colmod::Bit8> = tileset!("bulls_til.bin");
     /// The space background tiles.
-    pub(crate) const background: Tileset = tileset!("gamesetbg_til.bin");
+    pub(crate) const background: Tileset<colmod::Bit8> = tileset!("gamesetbg_til.bin");
     /// The palette for the space background.
     pub(crate) const background_pal: Palette = palette!(
         "gamesetbg_pal.bin",
@@ -172,7 +61,7 @@ pub(crate) mod space {
         cycle(26..26 + 6, 8),
     );
     /// The tiles of all possible enemy ships.
-    pub(crate) const ships: Ships<Tileset> = Ships {
+    pub(crate) const ships: Ships<Tileset<colmod::Bit8>> = Ships {
         small_blue: tileset!("bigB1_til.bin"),
         small_green1: tileset!("smallG1_til.bin"),
         small_green2: tileset!("smallG2_til.bin"),
@@ -222,7 +111,7 @@ pub(crate) mod players {
 
     /// Tile and palette of playable ship.
     pub(crate) struct Ship {
-        pub(crate) set: Tileset,
+        pub(crate) set: Tileset<colmod::Bit8>,
         pub(crate) pal: Palette,
     }
     /// The various palettes of player bullets, changing colors
@@ -259,7 +148,7 @@ pub(crate) mod players {
 pub(crate) mod menu {
     use super::*;
 
-    pub(crate) const set: Tileset = tileset!("menuset_til.bin");
+    pub(crate) const set: Tileset<colmod::Bit8> = tileset!("menuset_til.bin");
     pub(crate) const palette: Palette = palette!("menuset_pal.bin");
     // TODO: all the main menu tileset individual images
     pub(crate) const title_card: Image = Image {

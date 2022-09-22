@@ -1,10 +1,12 @@
 use const_default::ConstDefault;
 
-use crate::{
-    assets, layout,
-    text::draw::Pos,
-    {video_control::bg, vidmod, VideoControl},
+use hal::video::{
+    mode,
+    tile::{layer, map::Pos, sbb},
+    VideoControl,
 };
+
+use crate::layout;
 
 pub(crate) enum Ship {
     Blank,
@@ -68,13 +70,13 @@ impl ConstDefault for Mainmenu {
     };
 }
 impl Mainmenu {
-    pub(crate) fn draw_new_screen(&self, ctrl: &mut VideoControl<vidmod::Text>) {
+    pub(crate) fn draw_new_screen(&self, ctrl: &mut VideoControl<mode::Text>) {
         match self.menu {
             Submenu::Main { .. } => {
-                ctrl.layer(bg::TextLayerSlot::_0).set_sbb(bg::SbbSlot::_16);
+                ctrl.layer(layer::Slot::_0).set_sbb(sbb::Slot::_16);
             }
             Submenu::ShipSelect { .. } => {
-                ctrl.layer(bg::TextLayerSlot::_0).set_sbb(bg::SbbSlot::_17);
+                ctrl.layer(layer::Slot::_0).set_sbb(sbb::Slot::_17);
             }
         }
     }
@@ -96,14 +98,14 @@ pub(crate) struct MainmenuData {
     ship_image: Pos,
     ship_descr: Pos,
 }
-pub(crate) fn init_menu(ctrl: &mut VideoControl<vidmod::Text>) -> MainmenuData {
+pub(crate) fn init_menu(ctrl: &mut VideoControl<mode::Text>) -> MainmenuData {
     let mut image_ref = Pos::DEFAULT;
     let mut text_ref = Pos::DEFAULT;
     let mut ship_buttons = ShipButtons::DEFAULT;
     let mut main_buttons = MainButtons::DEFAULT;
 
     layout! {
-        #[sbb(ctrl.sbb(bg::SbbSlot::_17))]
+        #[sbb(ctrl.sbb(sbb::Slot::_17))]
         vertical(
             space(2),
             text("Select your ship:"),
@@ -126,7 +128,7 @@ pub(crate) fn init_menu(ctrl: &mut VideoControl<vidmod::Text>) -> MainmenuData {
         )
     };
     layout! {
-        #[sbb(ctrl.sbb(bg::SbbSlot::_16))]
+        #[sbb(ctrl.sbb(sbb::Slot::_16))]
         vertical(
             space(5),
             select(&mut main_buttons.start_game, "Start Game!!"),
@@ -135,10 +137,10 @@ pub(crate) fn init_menu(ctrl: &mut VideoControl<vidmod::Text>) -> MainmenuData {
         )
     };
     layout! {
-        #[sbb(ctrl.sbb(bg::SbbSlot::_15))]
+        #[sbb(ctrl.sbb(sbb::Slot::_15))]
         vertical(
             space(5),
-            image(assets::menu::title_card),
+            image(crate::assets::menu::title_card),
             space(1),
             text("Press Start"),
         )

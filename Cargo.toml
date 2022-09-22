@@ -3,17 +3,21 @@ name = "gssa-rust"
 version = "0.1.0"
 authors = ["Nicola Papale"]
 edition = "2021"
+exclude = ["resources"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = ["runtime_asserts"]
 runtime_asserts = []
 
 [dependencies]
-gba = { version = "0.5.3", path = "../../git/gba" }
-voladdress = "0.4"
+# NOTE: renamed to use hal::*; in source code
+hal = { version = "0.4", package = "haldvance", path = "haldvance" }
+assets = { version = "0.1", package = "gbassets", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
+
+[workspace]
+members = ["haldvance", "volmatrix", "gbassets"]
 
 [profile.release]
 lto = true

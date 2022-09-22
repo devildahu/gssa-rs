@@ -1,9 +1,9 @@
-//! Manage text layout on screen
+//! Manage text layout on screen.
 
-use crate::text::draw::{Draw, Pos};
-
-use crate::video_control::SbbHandle;
-use crate::vidmod;
+use hal::video::{
+    mode,
+    tile::{map::Pos, sbb, Drawable},
+};
 
 #[doc(hidden)]
 #[derive(Copy, Clone)]
@@ -12,22 +12,20 @@ pub(crate) enum Axis {
     Y,
 }
 #[doc(hidden)]
-pub(crate) struct ToChange<'a, 'b, M: vidmod::TileMode> {
+pub(crate) struct ToChange<'a, 'b, M: mode::TileMode> {
     pub(crate) axis: Axis,
     pub(crate) x: &'a mut usize,
     pub(crate) y: &'a mut usize,
-    pub(crate) sbb: SbbHandle<'b, M>,
+    pub(crate) sbb: sbb::Handle<'b, M>,
 }
 /// State of layouting
-impl<'a, 'b, M: vidmod::TileMode> ToChange<'a, 'b, M> {
-    #[inline]
+impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
     pub(crate) const fn current_axis(&mut self) -> &mut usize {
         match self.axis {
             Axis::X => self.x,
             Axis::Y => self.y,
         }
     }
-    #[inline]
     pub(crate) const fn add_rect(&mut self, width: usize, height: usize) {
         let value = match self.axis {
             Axis::X => width,
@@ -36,19 +34,16 @@ impl<'a, 'b, M: vidmod::TileMode> ToChange<'a, 'b, M> {
         let to_change = self.current_axis();
         *to_change += value;
     }
-    #[inline]
     pub(crate) const fn add(&mut self, value: usize) {
         let to_change = self.current_axis();
         *to_change += value;
     }
-    #[inline]
     pub(crate) const fn pos(&self) -> Pos {
         Pos {
             x: *self.x,
             y: *self.y,
         }
     }
-    #[inline]
     pub(crate) fn vertical(&mut self, f: impl FnOnce(&mut Self)) {
         let old_axis = self.axis;
         let old_y = *self.y;
@@ -57,7 +52,6 @@ impl<'a, 'b, M: vidmod::TileMode> ToChange<'a, 'b, M> {
         self.axis = old_axis;
         *self.y = old_y;
     }
-    #[inline]
     pub(crate) fn horizontal(&mut self, f: impl FnOnce(&mut Self)) {
         let old_axis = self.axis;
         let old_x = *self.x;
@@ -66,7 +60,7 @@ impl<'a, 'b, M: vidmod::TileMode> ToChange<'a, 'b, M> {
         self.axis = old_axis;
         *self.x = old_x;
     }
-    pub(crate) fn draw(&mut self, drawable: &impl Draw) {
+    pub(crate) fn draw(&mut self, drawable: &impl Drawable) {
         self.sbb.set_tiles(self.pos(), drawable);
     }
 }
@@ -109,7 +103,7 @@ macro_rules! layout {
     };
     ( #[sbb($sbb:expr)] $( $lay:ident $lay_args:tt ),+ $(,)? ) => {{
         #[allow(unused)]
-        use $crate::text::draw::Draw;
+        use hal::video::tile::Drawable;
         use $crate::text::layout::{ToChange, Axis};
         let mut x = 0;
         let mut y = 0;

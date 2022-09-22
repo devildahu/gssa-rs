@@ -1,0 +1,13 @@
+[package]
+name = "haldvance"
+description = "An advanced Rust abstraction layer for an Advanced Game Boy"
+version = "0.4.0"
+authors = ["Nicola Papale"]
+edition = "2021"
+license = "Zlib OR Apache-2.0"
+keywords = ["gba"]
+
+[dependencies]
+gba = { version = "0.5.3", path = "../../../git/gba" }
+volmatrix = { version = "0.4", features = ["nightly"], path = "../volmatrix" }
+const-default = { version = "1.0", default-features = false, features = ["derive"] }

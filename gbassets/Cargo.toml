@@ -1,0 +1,13 @@
+[package]
+name = "gbassets"
+description = "Create and define assets for the Gameboy Advance"
+version = "0.1.0"
+authors = ["Nicola Papale"]
+edition = "2021"
+license = "Zlib OR Apache-2.0"
+keywords = ["gba"]
+
+[dependencies]
+gba = { version = "0.5.3", path = "../../../git/gba" }
+haldvance = { version = "0.4", path = "../haldvance" }
+const-default = { version = "1.0", default-features = false, features = ["derive"] }
