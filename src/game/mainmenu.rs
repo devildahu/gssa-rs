@@ -1,13 +1,24 @@
 //! Main menu handling.
 use const_default::ConstDefault;
 
-use hal::video::{
-    mode,
-    tile::{layer, map::Pos, sbb},
-    VideoControl,
+use hal::{
+    exec::ConsoleState,
+    video::{
+        mode,
+        tile::{layer, map::Pos, sbb},
+        VideoControl,
+    },
 };
 
-use crate::layout;
+use crate::{assets, layout, text::EmptyLine};
+
+pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
+const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
+const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
+const PRESS_START: &str = "Press Start";
+const PRESS_START_LEN: usize = PRESS_START.as_bytes().len();
+
+const PRESS_START_BLINK_RATE: usize = 1 << 6;
 
 pub(crate) enum Ship {
     Blank,
@@ -57,28 +68,40 @@ impl MainEntry {
     }
 }
 pub(crate) enum Submenu {
+    Title,
     Main(MainEntry),
     ShipSelect { highlight: Ship },
 }
 pub(crate) struct Mainmenu {
     pub(crate) ship: Ship,
     pub(crate) menu: Submenu,
+    pub(crate) data: MainmenuData,
 }
 impl ConstDefault for Mainmenu {
     const DEFAULT: Self = Self {
         ship: Ship::Blank,
-        menu: Submenu::Main(MainEntry::Start),
+        menu: Submenu::Title,
+        data: ConstDefault::DEFAULT,
     };
 }
 impl Mainmenu {
     pub(crate) fn draw_new_screen(&self, ctrl: &mut VideoControl<mode::Text>) {
         match self.menu {
             Submenu::Main { .. } => {
-                ctrl.layer(layer::Slot::_0).set_sbb(sbb::Slot::_16);
+                ctrl.layer(layer::Slot::_0).set_sbb(MAIN_MENU_SBB);
             }
             Submenu::ShipSelect { .. } => {
-                ctrl.layer(layer::Slot::_0).set_sbb(sbb::Slot::_17);
+                ctrl.layer(layer::Slot::_0).set_sbb(SHIP_SELECT_SBB);
             }
+            Submenu::Title => {
+                ctrl.layer(layer::Slot::_0).set_sbb(TITLE_SCREEN_SBB);
+            }
+        }
+    }
+    pub(crate) fn text_draw(&self, console: &ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
+        match self.menu {
+            Submenu::ShipSelect { .. } | Submenu::Main { .. } => {}
+            Submenu::Title => self.data.draw_title_screen(console, ctrl),
         }
     }
 }
@@ -93,63 +116,82 @@ struct MainButtons {
     start_game: Pos,
     ships: Pos,
 }
+#[derive(ConstDefault)]
 pub(crate) struct MainmenuData {
-    menu_buttons: MainButtons,
+    mainmenu_buttons: MainButtons,
     ship_buttons: ShipButtons,
     ship_image: Pos,
     ship_descr: Pos,
+    press_start: Pos,
 }
-pub(crate) fn init_menu(ctrl: &mut VideoControl<mode::Text>) -> MainmenuData {
-    let mut image_ref = Pos::DEFAULT;
-    let mut text_ref = Pos::DEFAULT;
-    let mut ship_buttons = ShipButtons::DEFAULT;
-    let mut main_buttons = MainButtons::DEFAULT;
+impl MainmenuData {
+    fn draw_title_screen(&self, console: &ConsoleState, video: &mut VideoControl<mode::Text>) {
+        let half_blink = PRESS_START_BLINK_RATE / 2;
+        let mut sbb = video.sbb(TITLE_SCREEN_SBB);
+        console.every(0, PRESS_START_BLINK_RATE, |_| {
+            sbb.set_tiles(self.press_start, &PRESS_START);
+        });
+        console.every(half_blink, PRESS_START_BLINK_RATE, |_| {
+            sbb.set_tiles(self.press_start, &EmptyLine::<PRESS_START_LEN>);
+        });
+    }
+}
+pub(crate) fn init_menu(data: &mut MainmenuData, ctrl: &mut VideoControl<mode::Text>) {
+    let MainmenuData {
+        mainmenu_buttons: MainButtons { start_game, ships },
+        ship_buttons:
+            ShipButtons {
+                paladin,
+                spear,
+                blank,
+            },
+        ship_image,
+        ship_descr,
+        press_start,
+    } = data;
 
     layout! {
-        #[sbb(ctrl.sbb(sbb::Slot::_17))]
+        #[sbb(ctrl.sbb(SHIP_SELECT_SBB))]
         vertical(
             space(2),
             text("Select your ship:"),
             space(1),
             horizontal(
-                select(&mut ship_buttons.blank, "Blank"),
+                select(blank, "Blank"),
                 space(5),
-                select(&mut ship_buttons.spear, "Spear"),
+                select(spear, "Spear"),
                 space(5),
-                select(&mut ship_buttons.paladin, "Paladin"),
+                select(paladin, "Paladin"),
             ),
             space(2),
             text("Current ship:"),
             space(1),
             horizontal(
-                rect(&mut image_ref, 3 x 3),
+                rect(ship_image, 3 x 3),
                 space(1),
-                rect(&mut text_ref, 20 x 3),
+                rect(ship_descr, 20 x 3),
             ),
         )
     };
     layout! {
-        #[sbb(ctrl.sbb(sbb::Slot::_16))]
+        #[sbb(ctrl.sbb(MAIN_MENU_SBB))]
         vertical(
             space(5),
-            select(&mut main_buttons.start_game, "Start Game!!"),
+            select(start_game, "Start Game!!"),
             space(2),
-            select(&mut main_buttons.ships, "Ship select"),
+            select(ships, "Ship select"),
         )
     };
     layout! {
-        #[sbb(ctrl.sbb(sbb::Slot::_15))]
-        vertical(
+        #[sbb(ctrl.sbb(TITLE_SCREEN_SBB))]
+        horizontal(
             space(5),
-            image(crate::assets::menu::title_card),
-            space(1),
-            text("Press Start"),
+            vertical(
+                space(5),
+                image(assets::menu::title_card),
+                space(1),
+                horizontal(space(3), select(press_start, PRESS_START)),
+            )
         )
     };
-    MainmenuData {
-        ship_buttons,
-        menu_buttons: main_buttons,
-        ship_descr: text_ref,
-        ship_image: image_ref,
-    }
 }

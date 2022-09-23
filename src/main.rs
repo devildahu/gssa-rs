@@ -11,17 +11,20 @@ mod text;
 use core::mem;
 
 use const_default::ConstDefault;
-use hal::video::{
-    colmod, mode,
-    tile::{cbb, layer, sbb},
-    Layer, VideoControl,
+use hal::{
+    exec::ConsoleState,
+    video::{
+        colmod, mode,
+        tile::{cbb, layer, sbb},
+        Layer, VideoControl,
+    },
 };
 use hal::{
     exec::{full_game, panic_handler, GameState},
     Input,
 };
 
-use game::mainmenu::Mainmenu;
+use game::mainmenu::{Mainmenu, TITLE_SCREEN_SBB};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -30,52 +33,17 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 // TODO: devildahu logo + rust logo
 enum Screen {
-    Initial,
-    TitleCard { blink: u8 },
     Mainmenu(Mainmenu),
 }
 struct State {
     screen: Screen,
-    new_screen: bool,
 }
 impl GameState for State {
-    const INITIAL: Self = Self {
-        new_screen: false,
-        screen: Screen::Initial,
-    };
+    fn logic(&mut self, _: &ConsoleState, pad: Input) {}
 
-    fn logic(&mut self, pad: Input) {
-        self.new_screen = false;
-        match self.screen {
-            Screen::TitleCard { ref mut blink } => {
-                *blink = blink.wrapping_add(1);
-                if pad.start() {
-                    self.screen = Screen::Mainmenu(Mainmenu::DEFAULT);
-                    self.new_screen = true;
-                };
-            }
-            Screen::Initial => {
-                self.screen = Screen::TitleCard { blink: 0 };
-                self.new_screen = true;
-            }
-            Screen::Mainmenu(_) => {}
-        }
-    }
-
-    fn text_draw(&self, ctrl: &mut VideoControl<mode::Text>) {
-        if self.new_screen {
-            match &self.screen {
-                Screen::TitleCard { .. } => {
-                    ctrl.layer(layer::Slot::_0).set_sbb(sbb::Slot::_15);
-                }
-                Screen::Initial => {}
-                Screen::Mainmenu(mainmenu) => mainmenu.draw_new_screen(ctrl),
-            }
-        }
+    fn text_draw(&self, console: &ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
         match &self.screen {
-            Screen::TitleCard { blink: 0 } => {}
-            Screen::TitleCard { blink: 128 } => {}
-            _ => {}
+            Screen::Mainmenu(mainmenu) => mainmenu.text_draw(console, ctrl),
         }
     }
 }
@@ -94,10 +62,14 @@ pub fn main() -> ! {
     {
         let mut layer = video_control.layer(layer::Slot::_0);
         layer.set_color_mode::<colmod::Bit8>();
-        layer.set_sbb(sbb::Slot::_15);
+        layer.set_sbb(TITLE_SCREEN_SBB);
     }
-    game::mainmenu::init_menu(&mut video_control);
+    let mut mainmenu = Mainmenu::DEFAULT;
+    game::mainmenu::init_menu(&mut mainmenu.data, &mut video_control);
+    let state = State {
+        screen: Screen::Mainmenu(mainmenu),
+    };
     mem::drop(video_control);
     // TODO move logic from top to here
-    unsafe { full_game::<State>() };
+    unsafe { full_game(state) };
 }
