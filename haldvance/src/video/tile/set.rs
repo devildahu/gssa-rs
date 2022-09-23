@@ -4,9 +4,9 @@ use crate::video::colmod::ColorMode;
 
 /// A set of tiles for text mode.
 ///
-/// This is the raw data, not the tiles as represented by [`Image`].
+/// This is the raw data, not the tiles as represented by `Image`.
 ///
-/// To create a `Tileset` use the [`tileset!`] macro.
+/// To create a `Tileset` use the [`crate::tileset!`] macro.
 pub struct Tileset<M: ColorMode> {
     data: &'static [u8],
     _m: PhantomData<fn() -> M>,
@@ -14,7 +14,7 @@ pub struct Tileset<M: ColorMode> {
 impl<M: ColorMode> Tileset<M> {
     /// INTERNAL USE ONLY.
     ///
-    /// This should only be called inside of the [`tileset!`] macro.
+    /// This should only be called inside of the [`crate::tileset!`] macro.
     #[doc(hidden)]
     pub const fn new(data: &'static [u8]) -> Self {
         Self {

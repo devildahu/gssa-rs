@@ -1,5 +1,8 @@
 use gba::mmio_types::Color;
 
+#[cfg(doc)]
+use crate::video::{colmod, ColorMode, Tile, Tileset};
+
 macro_rules! impl_palette {
     (
         $( [
@@ -25,7 +28,7 @@ macro_rules! impl_palette {
     }
 }
 
-/// A palette [`Bank`] handle to refer to individual palette banks in [`crate::video::Tile`].
+/// A palette [`Bank`] handle to refer to individual palette banks in [`Tile`].
 pub struct BankHandle {
     pub(super) id: u16,
 }
@@ -35,18 +38,18 @@ pub struct BankHandle {
 pub struct Dynamic {
     data: &'static [Color],
 }
-/// A full color palette for [`Color8bit`] [`ColorMode`].
+/// A full color palette for [`colmod::Bit8`] [`ColorMode`].
 pub struct Full {
     data: &'static [Color; 256],
 }
-/// An individual palette for [`Color4bit`] [`ColorMode`].
+/// An individual palette for [`colmod::Bit4`] [`ColorMode`].
 ///
 /// In this mode, the GBA can hold 16 different "palette banks."
 /// A "palette bank" is a 16 colors palette.
 ///
 /// Furthermore, each individual tiles of a [`Tileset`] may refer to
 /// a single "palette bank," but each tile can be assigned
-/// a different "palette bank" in the [`Tilemap`].
+/// a different "palette bank" in the `Tilemap`.
 pub struct Bank {
     data: &'static [Color; 16],
 }

@@ -1,3 +1,4 @@
+//! Structs related to the Tile Map, aka Screen Base Block.
 use gba::mmio_types::TextTile;
 use volmatrix::rw::{VolBlock, VolMatrix};
 
@@ -8,12 +9,15 @@ use crate::video::{
 
 use super::{map, Drawable, Tile, SBB, SBB_SIZE};
 
+#[cfg(doc)]
+use crate::video::{colmod, tile::layer};
+
 // TODO: probably should invert the indices here, so that
 // higher allocation "spill down" to tile sprite data memory,
 // rather than starting in the data memory.
 /// A specific SBB slot.
 ///
-/// See [`super::SbbHandle`] for explanations on SBB.
+/// See [`Handle`] for explanations on SBB.
 #[derive(Clone, Copy)]
 pub struct Slot(usize);
 impl Slot {
@@ -83,14 +87,14 @@ impl Slot {
 /// An SBB (Screen Base Block) is a region of memory that
 /// represents a map of tiles to be displayed.
 ///
-/// There is normally only 6 SBBs in [`Color8bit`], but seemingly, the GBA allows
+/// There is normally only 6 SBBs in [`colmod::Bit8`], but seemingly, the GBA allows
 /// the SBB memory to "spill down" the to the tile pixel data.
 /// As long as you are not referencing higher id tiles, it should be fine.
 ///
-/// Generally [`Color4bit`] should be favored,
+/// Generally [`colmod::Bit4`] should be favored,
 /// but the same tile can use different palettes, and you have much more SBB space.
 ///
-/// You should use [`TextLayerHandle::set_sbb`] to set the SBB.
+/// You should use [`layer::Handle::set_sbb`] to set the SBB.
 ///
 /// # Character Base Block
 ///

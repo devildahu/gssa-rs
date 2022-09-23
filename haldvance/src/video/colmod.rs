@@ -1,3 +1,10 @@
+#[cfg(doc)]
+use crate::video::{
+    mode::{Mixed, Text},
+    tile::sbb,
+    Tile,
+};
+
 /// The color mode of tile bitmap information.
 ///
 /// Also commonly refered as `8bpp` or `bpp8`.
@@ -19,8 +26,8 @@
 ///   "transparency" index.
 ///   * `base_addr + size_of::<Color>() * (pal_bank << 4 | entry)`
 ///
-/// A series of 32×32 colors represent a [`crate::text::Tile`], individual tiles are
-/// addressed by index in the [SBB](SbbHandle).
+/// A series of 32×32 colors represent a [`Tile`], individual tiles are
+/// addressed by index in the [SBB](sbb::Handle).
 pub trait ColorMode: sealed::ColorMode {}
 
 /// 8 bit color tiles video mode.

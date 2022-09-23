@@ -7,9 +7,12 @@ use volmatrix::rw::VolAddress;
 
 use crate::video::{mode::TileMode, tile::sbb, ColorMode, Mode, VideoControl};
 
+#[cfg(doc)]
+use crate::video::mode::{Mixed, Text};
+
 /// Background layer priority, lower is more in front.
 ///
-/// Used by [`layer::Handle`].
+/// Used by [`Handle`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
 pub enum Priority {
@@ -34,9 +37,9 @@ impl Priority {
 }
 /// Background layers accessible in [`Text`] [`Mode`].
 ///
-/// To manipulate the background, get a [`layer::Handle`] from
+/// To manipulate the background, get a [`Handle`] from
 /// [`VideoControl<Text>::layer`] or [`VideoControl<Mixed>::text_layer`]
-/// and use the methods on [`layer::Handle`].
+/// and use the methods on [`Handle`].
 #[derive(Clone, Copy)]
 #[repr(u16)]
 pub enum Slot {
@@ -58,9 +61,9 @@ impl Slot {
 
 /// Text background layers accessible in [`Mixed`] [`Mode`].
 ///
-/// To manipulate the background, get a [`layer::Handle`] from
+/// To manipulate the background, get a [`Handle`] from
 /// [`VideoControl<Mixed>::text_layer`]
-/// and use the methods on [`layer::Handle`].
+/// and use the methods on [`Handle`].
 #[derive(Clone, Copy)]
 #[repr(u16)]
 pub enum MixedSlot {

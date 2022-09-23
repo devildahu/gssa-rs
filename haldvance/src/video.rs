@@ -39,13 +39,14 @@ pub use tile::Tile;
 /// # How to read this doc page
 ///
 /// Methods on `VideoControl` are divided in many different `impl` blocks. Each
-/// for a different subset of video modes. Some methods return a `***Handle`,
+/// for a different subset of video modes. Some methods return a `*::Handle`,
 /// which might contain the methods you are looking for. For example, to draw
-/// something on-screen in [`Text`] mode, you should:
-/// - call [`VideoControl::sbb`] to get a [`SbbHandle`],
-/// - then call [`SbbHandle::set_tiles`] with the [`text::Draw`]able you want to display
-/// - call [`VideoControl::layer`] to get a [`TextLayerHandle`],
-/// - then call [`TextLayerHandle::set_sbb`] to set it to the SBB you just drew
+/// something on-screen in [`mode::Text`] mode, you should:
+/// - call [`VideoControl::sbb`] to get a [`tile::sbb::Handle`],
+/// - then call [`tile::sbb::Handle::set_tiles`] with the [`tile::Drawable`]
+///   you want to display
+/// - call [`VideoControl::layer`] to get a [`tile::layer::Handle`],
+/// - then call [`tile::layer::Handle::set_sbb`] to set it to the SBB you just drew
 ///   your stuff to.
 /// - (make sure also to call [`VideoControl::enable_layer`]) with the layer
 ///   you want to display)
@@ -65,7 +66,7 @@ impl<M: Mode> VideoControl<M> {
 
     /// Create an instance of `VideoControl`.
     ///
-    /// Note that if you are using [`crate::exec::full_app`],
+    /// Note that if you are using [`crate::exec::full_game`],
     /// you should not call this method!
     ///
     /// # Safety

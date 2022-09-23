@@ -6,6 +6,9 @@
 
 use super::{map::Pos, Tile};
 
+#[cfg(doc)]
+use crate::video::mode::{Affine, Mode, Text};
+
 /// Something that can be drawn on a tilemap in [`Text`]/[`Affine`] [`Mode`].
 ///
 /// To draw something, call [`super::sbb::Handle::set_tiles`]
@@ -13,23 +16,19 @@ use super::{map::Pos, Tile};
 /// for a given instance by calling a function once per relevant tile.
 /// The lower level aspect of bit-fiddling with the mmio registers is left
 /// to this crate's `set_tiles` implementation.
-///
-/// [`Text`]: crate::video::mode::Text
-/// [`Affine`]: crate::video::mode::Affine
-/// [`Mode`]: crate::video::Mode
 pub trait Drawable {
     /// Call `f` once per tile of self.
-    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, pos: Pos, width: usize, f: F);
+    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, pos: Pos, screen_width: usize, f: F);
 }
 
 const ASCII_OFFSET: u8 = 0x20;
 impl<'s> Drawable for &'s str {
-    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut pos: Pos, width: usize, mut f: F) {
+    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut pos: Pos, screen_width: usize, mut f: F) {
         self.bytes().for_each(|byte| {
-            let tile = Tile::new((byte - ASCII_OFFSET) as u16);
+            let tile = Tile::new(u16::from(byte - ASCII_OFFSET));
             f(tile, pos);
             pos.x += 1;
-            if pos.x == width {
+            if pos.x == screen_width {
                 pos.x = 0;
                 pos.y += 1;
             }

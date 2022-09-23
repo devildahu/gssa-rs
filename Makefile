@@ -7,6 +7,7 @@ build_flags =
 
 check:
 	cargo clippy
+	cargo doc
 	
 run_cargo:
 	cargo build --release $(build_flags)

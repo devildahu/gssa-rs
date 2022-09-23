@@ -19,6 +19,9 @@ use crate::video::{
     palette, VideoControl,
 };
 
+#[cfg(doc)]
+use crate::video::Mode;
+
 pub use drawable::Drawable;
 pub use gba::mmio_types::Color;
 pub use set::Tileset;
@@ -36,11 +39,11 @@ impl Tile {
     pub const fn flip_vert(self) -> Self {
         Self(self.0.with_vflip(!self.0.vflip()))
     }
-    /// In [`crate::video::colmod::Bit4`] mode, each individual `Tile`
+    /// In [`colmod::Bit4`] mode, each individual [`Tile`]
     /// has at most 16 colors, but the palette for each tile can be
-    /// specified in the tilemap `Tile` data.
+    /// specified in the tilemap [`Tile`] data.
     ///
-    /// This has no effect if the color mode of the background is `Bit8`.
+    /// This has no effect if the color mode of the background is [`colmod::Bit8`].
     pub const fn with_palette(self, palette: palette::BankHandle) -> Self {
         Self(self.0.with_palbank(palette.id))
     }

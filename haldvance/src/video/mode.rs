@@ -1,3 +1,6 @@
+#[cfg(doc)]
+use crate::video::{colmod, ColorMode};
+
 /// Video modes for use with [`super::VideoControl`].
 ///
 /// | Mode  | Layers (BG*) | Res | Tiles/double buffering | Colors | Features | Status|
