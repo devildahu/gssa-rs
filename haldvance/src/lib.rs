@@ -10,9 +10,7 @@
 
 pub mod exec;
 pub mod input;
-pub mod runtime_asserts;
+pub mod log;
 pub mod video;
 
-#[doc(hidden)]
-pub use gba::macros as gba_macros;
 pub use input::Input;

@@ -2,6 +2,9 @@ use core::ops::Add;
 
 use const_default::ConstDefault;
 
+#[cfg(doc)]
+use crate::video::mode::{Affine, Mixed, Mode, Text};
+
 // TODO: enum this, or even const-generic it.
 pub(crate) type ScreenSize = usize;
 
@@ -11,7 +14,7 @@ pub const HARDCODED_TILEMAP_WIDTH: u16 = 32;
 ///
 /// GBATEK calls this "Screen Size."
 #[repr(u16)]
-pub enum TextMapSize {
+pub enum TextSize {
     /// 32×32 tiles, or 256×256 pixels
     Base = 0,
     /// 64×32 tiles, or 512×256 pixels
@@ -25,7 +28,7 @@ pub enum TextMapSize {
 ///
 /// GBATEK calls this "Screen Size."
 #[repr(u16)]
-pub enum AffineMapSize {
+pub enum AffineSize {
     /// 16×16 tiles, or 128×128 pixels
     Base = 0,
     /// 32×32 tiles, or 256×256 pixels

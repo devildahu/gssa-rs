@@ -9,7 +9,7 @@ keywords = ["gba"]
 
 [features]
 default = []
-runtime_asserts = []
+log = []
 
 [dependencies]
 gba = { version = "0.5.3", path = "../../../git/gba" }

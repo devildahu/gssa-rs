@@ -10,34 +10,21 @@ use haldvance::video::{
     Tile,
 };
 
+// For usage in the macros defined here.
 #[doc(hidden)]
 pub use haldvance::video::tile::Color;
+#[doc(hidden)]
+pub use include_const_aligned as include_macros;
 
 #[macro_export]
 macro_rules! palette {
     ($file:literal $(, cycle ($range:expr, $rate:expr) )* $(,)?) => {{
-// https://users.rust-lang.org/t/can-i-conveniently-compile-bytes-into-a-rust-program-with-a-specific-alignment/24049
-// This struct is generic in Bytes to admit unsizing coercions.
-#[repr(C)] // guarantee 'bytes' comes after '_align'
-struct AlignedTo<Align, Bytes: ?Sized> {
-    _align: [Align; 0],
-    bytes: Bytes,
-}
-
-// dummy static used to create aligned data
-const ALIGNED: &'static AlignedTo<$crate::Color, [u8]> = &AlignedTo {
-    _align: [],
-    bytes: *include_bytes!(concat!("../resources/", $file)),
-};
-
-const ALIGNED_BYTES: &'static [u8] = &ALIGNED.bytes;
-
-
-        let u8s = &ALIGNED.bytes;
-        let byte_len = u8s.len();
-        // SAFETY: byte_len >> 1 is half the size of u8s, Color is repr(u16)
-        let colors: &[$crate::Color] = unsafe {
-            core::slice::from_raw_parts(u8s.as_ptr().cast(), byte_len >> 1)
+        let colors = unsafe {
+            $crate::include_macros::include_const_transmutted!(
+                2,
+                concat!("../resources/", $file),
+                $crate::Color,
+            )
         };
         let cycles = &[ $( Cycle::new($range, $rate), )* ];
         $crate::Palette::new(colors, cycles)
@@ -62,13 +49,15 @@ impl Palette {
     }
 }
 
-// TODO: type-safe [`Tileset`] to make it impossible to missuse
+// TODO: type-safe `Tileset` to make it impossible to missuse
 // with regard to Color4bit and Color8bit.
 // TODO: probably requires distinguishing "dynamic" images from
 // fixed position images.
 /// An image in a tileset.
 ///
 /// It can be drawn and stuff, while [`Tileset`] is the raw data to load in VRAM.
+///
+/// [`Tileset`]: haldvance::video::Tileset
 pub struct Image {
     /// The **tileset**'s width.
     pub tileset_width: u16,

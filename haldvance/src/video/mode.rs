@@ -1,30 +1,33 @@
 /// Video modes for use with [`super::VideoControl`].
 ///
-/// | Mode  | Layers (BG*) | Res | Tiles/double buffering | Colors | Features | Implementation status|
+/// | Mode  | Layers (BG*) | Res | Tiles/double buffering | Colors | Features | Status|
 /// |:-----:|:------------:|:---:|:----------------------:|:------:|:--------:|:--------------------:|
-/// | [`Text`]          | 0-3 | 256^2 to 512^2  | [`TextMapSize`]  | 4/8bpp | Scroll, Flip | Working
-/// | [`Mixed`]         | 0-2 | BG0/1 ↑, BG2 ↓  | ← ibid           | ← ibid | ← ibid       | Planned
-/// | [`Affine`]        | 2,3 | 128^2 to 1024^2 | [`AffineMapSize`]| 4/8bpp | Scroll, Affine | Planned
-/// | `FullColorBitmap` | 2   | 240x160         | no               | RGB555   | Affine | Low priority
-/// | `PaletteBitmap`   | 2   | 240x160         | dbuff            | 4bpp     | Affine | Low priority
-/// | `LowBitmap`       | 2   | 160x128         | dbuff            | RGB555   | Affine | Low priority
+/// | [`Text`]        | 0-3 | 256^2 to 512^2  | [`map::TextSize`]  | 4/8bpp | Scroll, Flip | Done
+/// | [`Mixed`]       | 0-2 | BG0/1 ↑, BG2 ↓  | ← ibid           | ← ibid | ← ibid       | TODO
+/// | [`Affine`]      | 2,3 | 128^2 to 1024^2 | [`map::AffineSize`]| 4/8bpp | Scroll, Affine | TODO
+/// | `ColorBitmap`   | 2   | 240x160         | no               | RGB555   | Affine | TODO
+/// | `PaletteBitmap` | 2   | 240x160         | double buff      | 4bpp     | Affine | TODO
+/// | `LowBitmap`     | 2   | 160x128         | double buff      | RGB555   | Affine | TODO
 ///
 /// See links to `Mode` implementors for fully detailed documentation.
 ///
-/// `FullColorBitmap` allows just to set individual pixel color in memory, there
+/// `ColorBitmap` allows just to set individual pixel color in memory, there
 /// is no double-buffering meaning that you will have a hard time avoiding screen
 /// tearing. But you could in theory display anything in this mode, theoretically
 /// allows you to display at the same time 32768 colors on screen.
 ///
-/// `PaletteBitmap` is like `FullColorBitmap`, but has two buffers, which means
+/// `PaletteBitmap` is like `ColorBitmap`, but has two buffers, which means
 /// you can work on one while the other is shown, then flipping between the two
 /// buffers at your leisure. allowing you to avoid screen tearing.
 /// However, in this mode, each pixel color is palette-indexed, allowing at most
 /// 256 colors shown at the same time.
 ///
-/// `LowBitmap` is like `FullColorBitmap`, but with limited resolution (160×128 pixels
+/// `LowBitmap` is like `ColorBitmap`, but with limited resolution (160×128 pixels
 /// rather than the GBA-native 240×160), this allows double-buffering with full color
 /// range available.
+///
+/// [`map::TextSize`]: crate::video::tile::map::TextSize
+/// [`map::AffineSize`]: crate::video::tile::map::AffineSize
 pub trait Mode: sealed::Mode {}
 
 /// Subset of [`Mode`]s that support tile-based access.

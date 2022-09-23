@@ -56,7 +56,7 @@ impl_palette! {
     [impl Full, size: 256],
 }
 
-/// Define a [`Palette`].
+/// Define a [`palette`](self).
 ///
 /// Directly pass the file name, prefixes the path to the resources
 /// directory.

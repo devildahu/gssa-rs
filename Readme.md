@@ -58,9 +58,11 @@ code was:
    - [X] volmatrix.rs as separate individual crate.
    - [X] derive macro for const DEFAULT (or use a 3rd party crate)
    - [X] const assert in various places where relevant.
+- [ ] Fix the text layouting algorithm
 - [ ] browse game menu, select ship
 - [ ] start game with selected ship
 - [ ] Improve the HAL so that I can implement what the old version used to have
+   - [ ] Fix include_bytes! alignment for all resource types similarly to palette!
    - [ ] Allow switching video mode in exec::GameState
    - [ ] Add OBJ handling
    - [ ] Palette manager

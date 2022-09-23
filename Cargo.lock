@@ -37,6 +37,7 @@ dependencies = [
  "const-default",
  "gba",
  "haldvance",
+ "include_const_aligned",
 ]
 
 [[package]]
@@ -56,6 +57,10 @@ dependencies = [
  "gba",
  "volmatrix",
 ]
+
+[[package]]
+name = "include_const_aligned"
+version = "0.4.0"
 
 [[package]]
 name = "once_cell"

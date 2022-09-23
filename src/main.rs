@@ -90,6 +90,7 @@ pub fn main() -> ! {
     video_control.load_tileset(cbb::Slot::_0, &assets::menu::set);
     video_control.load_palette(&assets::menu::palette.get());
     video_control.enable_layer(Layer::<mode::Text>::_0);
+    hal::warn!("hello world");
     {
         let mut layer = video_control.layer(layer::Slot::_0);
         layer.set_color_mode::<colmod::Bit8>();
