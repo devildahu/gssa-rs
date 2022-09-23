@@ -1,11 +1,11 @@
 // TODO: Design a generic hierarchical state machine to build the game around them
 #![no_std]
 #![no_main]
+#![warn(clippy::pedantic, clippy::nursery)]
 #![feature(const_mut_refs)]
 
 mod assets;
 mod game;
-mod runtime_asserts;
 mod text;
 
 use core::mem;

@@ -1,3 +1,4 @@
+//! Main menu handling.
 use const_default::ConstDefault;
 
 use hal::video::{

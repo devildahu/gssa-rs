@@ -1,5 +1,12 @@
+//! GBA input.
+//!
+//! Check the [`Input`] struct.
 use gba::mmio_types::Keys;
 
+/// The GBA input state.
+///
+/// In [`crate::exec::full_game`], the `Input` struct passed as argument
+/// to the `logic` method is updated every frame.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Input {
     pub(crate) keypad: Keys,

@@ -7,6 +7,10 @@ edition = "2021"
 license = "Zlib OR Apache-2.0"
 keywords = ["gba"]
 
+[features]
+default = []
+runtime_asserts = []
+
 [dependencies]
 gba = { version = "0.5.3", path = "../../../git/gba" }
 volmatrix = { version = "0.4", features = ["nightly"], path = "../volmatrix" }

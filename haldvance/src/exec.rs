@@ -45,10 +45,12 @@ pub trait GameState {
 
     /// Draw stuff in [`mode::Text`].
     fn text_draw(&self, video: &mut VideoControl<mode::Text>);
+
     /// Draw stuff in [`mode::Mixed`], by default does nothing.
     fn mixed_draw(&self, video: &mut VideoControl<mode::Mixed>) {
         let _ = video;
     }
+
     /// Draw stuff in [`mode::Affine`], by default does nothing.
     fn affine_draw(&self, video: &mut VideoControl<mode::Affine>) {
         let _ = video;
