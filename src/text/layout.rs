@@ -65,12 +65,70 @@ impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
     }
 }
 
+/// Draw a menu layout using a very barebone layouting specification.
+///
+/// # Syntax
+///
+/// ```text
+/// layout!(
+///     #[sbb($sbb: sbb::Handle)]
+///     [<command>, ]*
+/// )
+/// ```
+///
+/// `$sbb` is the Screen block (tile map) to draw the screen to,
+/// `[<command>, ]*` is a series of layout commands. There are three
+/// kinds of commands:
+/// - **context change** (`vertical`, `horizontal`): whether to advance
+///   the cursor forward vertically or horizontally after drawing
+///   something on screen.
+/// - **drawing** (`space`, `text`, `image`): reserve and optionally draw
+///   tiles on screen at the current cursor positions, then the cursor
+///   is updated to a free screen region for the next command.
+/// - **position save** (`select`, `rect`): act like **drawing** commands,
+///   but also accepts a `&mut Pos` argument to save somewhere the current
+///   cursor position. This let you keep track of screen regions so that
+///   you can later manipulate them freely.
+///
+/// All the commands:
+/// - **Context change**:
+///     - `vertical( [<command>,]* )`: Enter "vertical" mode and execute specified
+///       commands, return in current mode afterward.
+///     - `horizontal( [<command>,]* )`: Enter "horizontal" mode and execute
+///       specified commands, return in current mode afterward.
+/// - **Drawing**:
+///     - `space($count) `:  skip `$count` cells in current direction.
+///     - `text($text: &'static str)`:  draw `$text` and advance `$text.len()`
+///       cells accordingly.
+///     - `image($img)`:  draw `$img` (a `Drawable`) and advance cells.
+/// - **Position Save**:
+///     - `select($ref: &mut Pos, $text: &'static str)`: draw `$text`, advance
+///       `$text.len()` cells and save text position in `$ref`.
+///     - `rect($ref: &mut Pos, $width x $height)`: Like `image`, but draws nothing,
+///       just "reserves" a square of size `$width x $height` and saves the cursor
+///       position in `$ref`.
+///
+/// # Example
+///
+/// ```
+/// # use hal::{VideoControl, video::{self, tile::sbb}};
+/// # let mut ctrl = unsafe { VideoControl::<video::mode::Text>::init() };
+/// layout! {
+///     #[sbb(ctrl.sbb(sbb::Slot::_15))]
+///     vertical(
+///         space(5),
+///         image(crate::assets::menu::title_card),
+///         space(1),
+///         text("Press Start"),
+///     )
+/// };
+/// ```
 #[macro_export]
 macro_rules! layout {
     (@hint $to_change:ident space ($count:literal)) => {
         $to_change.add($count)
     };
-    (@hint $to_change:ident text ($text:literal)) => {
+    (@hint $to_change:ident text ($text:expr)) => {
         $to_change.draw(&$text);
         let text_width = $text.split('\n').map(|line| line.len()).max().unwrap_or(0);
         let text_height = $text.chars().filter(|char| *char ==  '\n').count() + 1;
@@ -80,7 +138,7 @@ macro_rules! layout {
         $to_change.draw(&$img);
         $to_change.add_rect($img.width, $img.height)
     };
-    (@hint $to_change:ident select ($refer:expr, $text:literal)) => {
+    (@hint $to_change:ident select ($refer:expr, $text:expr)) => {
         $to_change.draw(&$text);
         *$refer = $to_change.pos();
         let text_width = $text.split('\n').map(|line| line.len()).max().unwrap_or(0);
