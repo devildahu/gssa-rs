@@ -5,6 +5,9 @@ build_flags =
 .DEFAULT_GOAL: build
 .PHONY: run_cargo
 
+check:
+	cargo clippy
+	
 run_cargo:
 	cargo build --release $(build_flags)
 
