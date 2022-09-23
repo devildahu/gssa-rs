@@ -9,6 +9,7 @@ use super::{map::Pos, Tile};
 #[cfg(doc)]
 use crate::video::mode::{Affine, Mode, Text};
 
+// TODO: fn size()
 /// Something that can be drawn on a tilemap in [`Text`]/[`Affine`] [`Mode`].
 ///
 /// To draw something, call [`super::sbb::Handle::set_tiles`]

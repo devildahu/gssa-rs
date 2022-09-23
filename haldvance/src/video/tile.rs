@@ -30,6 +30,8 @@ pub use set::Tileset;
 #[derive(Clone, Copy)]
 pub struct Tile(TextTile);
 impl Tile {
+    pub const EMPTY: Self = Tile::new(0);
+
     pub const fn new(tile_id: u16) -> Self {
         Self(TextTile::from_tile_id(tile_id))
     }
@@ -73,13 +75,6 @@ impl VideoControl<Mixed> {
     }
 }
 
-/// SAFETY: the slice is intended to be converted to u16 with regard to endianness.
-unsafe fn u8_to_u16_slice(u8s: &[u8]) -> &[u16] {
-    let byte_len = u8s.len() >> 1;
-    // SAFETY: byte_len is always less or equal to half the u8s size,
-    // so the covered memory block is always within bounds of u8s
-    unsafe { slice::from_raw_parts(u8s.as_ptr().cast(), byte_len) }
-}
 /// `VideoControl` methods for [tile](TileMode) [`Mode`] ([`Mixed`], [`Text`] and [`Affine`]).
 impl<M: TileMode> VideoControl<M> {
     /// Load a [`Tileset`] into video memory.
@@ -88,8 +83,7 @@ impl<M: TileMode> VideoControl<M> {
     /// the CBB is the "tileset" or tile bitmap data. While the [SBB](sbb::Handle) is
     /// the map, each entry an index into the CBB.
     pub fn load_tileset(&mut self, slot: cbb::Slot, tileset: &Tileset<colmod::Bit8>) {
-        // SAFETY: TODO
-        let data = unsafe { u8_to_u16_slice(tileset.get()) };
+        let data = tileset.get();
         for (i, data) in data.chunks(CBB_SIZE).enumerate() {
             if let Some(cbb) = slot.add(i) {
                 let cbb = cbb.index_volmatrix(TILE_IMG_DATA);

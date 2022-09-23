@@ -2,36 +2,43 @@
 //!
 //! Note that `include_const_transmutted` requires the `const_mut_refs`
 //! nightly feature (see <https://github.com/rust-lang/rust/issues/67456>).
+//! Meaning that if you want to use it, you must add `#![feature(const_mut_refs)]`
+//! to your crate's `lib.rs` or `main.rs`.
 #![no_std]
 
 /// Like [`include_bytes!`], but allow specification of the alignment.
 #[macro_export]
 macro_rules! include_const_aligned {
-    ($align_to:expr, $path:expr) => {{
-        #[repr(align($align_to))]
-        struct Aligned<T: ?Sized>(T);
-        const DATA: &'static Aligned<[u8]> = &Aligned(*include_bytes!($path));
-        &DATA.0
+    ($align_to:ty, $path:expr $(,)?) => {{
+        #[repr(C)]
+        struct Aligned<Align, T: ?Sized> {
+            _align: [Align; 0],
+            data: T,
+        }
+        const DATA: &Aligned<$align_to, [u8]> = &Aligned {
+            _align: [],
+            data: *include_bytes!($path),
+        };
+        &DATA.data
     }};
 }
 
 /// Like [`include_bytes!`], but allow transmuttation to arbitrary types.
 ///
-/// # Panics
+/// # Compile time Panics
 ///
-/// When the size of the file in `$path` must be a multiple of `size_of<$T>`.
+/// When the size of the file in `$path` is not a multiple of `size_of<$T>`.
 ///
 /// # Safety
 ///
-/// - The bit pattern in file specified with `$path` must be a valid `$T`
-/// - `$align_to` must be a valid alignment for `$T`
+/// The bit pattern in file specified with `$path` must be a valid `$T`.
 #[macro_export]
 macro_rules! include_const_transmutted {
-    ($align_to:expr, $path:expr, $T:ty $(,)?) => {{
+    ($T:ty, $path:expr $(,)?) => {{
         // Define in a const fn to make sure we are not
         // accidentally adding runtime overhead.
         const unsafe fn read_data() -> &'static [$T] {
-            let data = $crate::include_const_aligned!($align_to, $path);
+            let data: &[u8] = $crate::include_const_aligned!($T, $path);
             let len = data.len();
             let t_size = ::core::mem::size_of::<$T>();
             if len % t_size != 0 {

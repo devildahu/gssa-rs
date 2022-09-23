@@ -19,11 +19,12 @@ pub use include_const_aligned as include_macros;
 #[macro_export]
 macro_rules! palette {
     ($file:literal $(, cycle ($range:expr, $rate:expr) )* $(,)?) => {{
+        // SAFETY: `Color` (from gba crate) here is repr(transparent) u16,
+        // which allows arbitrary bit patterns.
         let colors = unsafe {
             $crate::include_macros::include_const_transmutted!(
-                2,
-                concat!("../resources/", $file),
                 $crate::Color,
+                concat!("../resources/", $file),
             )
         };
         let cycles = &[ $( Cycle::new($range, $rate), )* ];

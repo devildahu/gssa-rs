@@ -13,5 +13,6 @@ log = []
 
 [dependencies]
 gba = { version = "0.5.3", path = "../../../git/gba" }
-volmatrix = { version = "0.4", features = ["nightly"], path = "../volmatrix" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
+include_const_aligned = { version = "0.4.0", path = "../include_const_aligned" }
+volmatrix = { version = "0.4", features = ["nightly"], path = "../volmatrix" }
