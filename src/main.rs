@@ -2,26 +2,22 @@
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic, clippy::nursery)]
+#![allow(clippy::redundant_pub_crate)]
 #![feature(const_mut_refs)]
 
 mod assets;
 mod game;
 mod text;
 
-use core::mem;
-
 use const_default::ConstDefault;
+use hal::exec::{full_game, panic_handler, GameState};
 use hal::{
     exec::ConsoleState,
     video::{
         colmod, mode,
-        tile::{cbb, layer, sbb},
+        tile::{cbb, layer},
         Layer, VideoControl,
     },
-};
-use hal::{
-    exec::{full_game, panic_handler, GameState},
-    Input,
 };
 
 use game::mainmenu::{Mainmenu, TITLE_SCREEN_SBB};
@@ -39,7 +35,13 @@ struct State {
     screen: Screen,
 }
 impl GameState for State {
-    fn logic(&mut self, _: &ConsoleState, pad: Input) {}
+    fn logic(&mut self, console: &ConsoleState) {
+        match &mut self.screen {
+            Screen::Mainmenu(mainmenu) => {
+                mainmenu.logic(console);
+            }
+        }
+    }
 
     fn text_draw(&self, console: &ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
         match &self.screen {
@@ -56,7 +58,7 @@ pub fn main() -> ! {
     let mut video_control = unsafe { VideoControl::<mode::Text>::init() };
     video_control.reset_display_control();
     video_control.load_tileset(cbb::Slot::_0, &assets::menu::set);
-    video_control.load_palette(&assets::menu::palette.get());
+    video_control.load_palette(assets::menu::palette.get());
     video_control.enable_layer(Layer::<mode::Text>::_0);
     hal::warn!("hello world");
     {
@@ -69,7 +71,6 @@ pub fn main() -> ! {
     let state = State {
         screen: Screen::Mainmenu(mainmenu),
     };
-    mem::drop(video_control);
     // TODO move logic from top to here
     unsafe { full_game(state) };
 }
