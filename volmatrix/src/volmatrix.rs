@@ -16,6 +16,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// `WIDTH * HEIGHT` elements results in a compilation failure ("attempt to
     /// create a negative array size").
     #[cfg(feature = "nightly")]
+    #[must_use]
     pub const fn from_block<const B: usize>(block: VolBlock<T, R, W, B>) -> Self
     where
         // compile time check that B > W*H
@@ -35,6 +36,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     ///
     /// Use the `nightly` feature to replace the assertion with a type error.
     #[cfg(not(feature = "nightly"))]
+    #[must_use]
     pub const fn from_block<const B: usize>(block: VolBlock<T, R, W, B>) -> Self {
         assert!(B >= WIDTH * HEIGHT);
         // SAFETY: block's safety requirement is that all VolAddress accessible within
@@ -52,10 +54,10 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     ///
     /// ```text
     /// for all (X, Y) in (0..WIDTH, 0..HEIGHT):
-    /// 	let accessible = address + mem::size_of::<T>() * (X + WIDTH * Y);
+    ///     let accessible = address + mem::size_of::<T>() * (X + WIDTH * Y);
     ///     assert_valid_voladdress(accessible);
     /// ```
-    #[inline(always)]
+    #[must_use]
     pub const unsafe fn new(address: usize) -> Self {
         Self {
             vol_address: VolAddress::new(address),
@@ -65,7 +67,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// `None` if out of bound.
     ///
     /// Use [`VolMatrix::get_unchecked`] to skip bound checks.
-    #[inline(always)]
+    #[must_use]
     pub const fn get(self, x: usize, y: usize) -> Option<VolAddress<T, R, W>> {
         if x < WIDTH && y < HEIGHT {
             // SAFETY: if x < WIDTH && y < HEIGHT
@@ -83,7 +85,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// `x + y * WIDTH` must be lower than WIDTH * HEIGHT.
     ///
     /// Though, semantically, you should probably make sure that `x < WIDTH` and `y < HEIGHT`.
-    #[inline(always)]
+    #[must_use]
     pub const unsafe fn get_unchecked(self, x: usize, y: usize) -> VolAddress<T, R, W> {
         // SAFETY: upheld by function safety requirements
         self.vol_address.add(x + y * WIDTH)
@@ -99,7 +101,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// # Safety
     ///
     /// `y < HEIGHT`.
-    #[inline(always)]
+    #[must_use]
     pub const unsafe fn row_unchecked(self, y: usize) -> VolBlock<T, R, W, WIDTH> {
         // SAFETY:
         // - function safety condition: `y < HEIGHT`
@@ -111,7 +113,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// Get a signle row of the matrix as a [`VolBlock`].
     ///
     /// Use [`VolMatrix::row_unchecked`] to skip bound checks.
-    #[inline(always)]
+    #[must_use]
     pub const fn get_row(self, y: usize) -> Option<VolBlock<T, R, W, WIDTH>> {
         if y < HEIGHT {
             // SAFETY: if y < HEIGHT
@@ -131,7 +133,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// # Safety
     ///
     /// `x < WIDTH`.
-    #[inline(always)]
+    #[must_use]
     pub const unsafe fn column_unchecked(
         self,
         x: usize,
@@ -146,7 +148,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// Get a signle column of the matrix as a [`VolSeries`].
     ///
     /// Use [`VolMatrix::column_unchecked`] to skip bound checks.
-    #[inline(always)]
+    #[must_use]
     pub const fn get_column(
         self,
         x: usize,

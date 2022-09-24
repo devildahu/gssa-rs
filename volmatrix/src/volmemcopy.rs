@@ -2,7 +2,7 @@ use voladdress::{Safe, VolBlock};
 
 /// Extension trait to [`VolBlock`] for bulk volatile load/store.
 ///
-/// Currently just a very basic call to ptr::write_volatile, but later may
+/// Currently just a very basic call to `ptr::write_volatile`, but later may
 /// use optimized intrisics (currently want to get it working, AND need to
 /// define myself the optimized intrisics, so it's not ready tomorrow)
 ///
@@ -11,7 +11,7 @@ pub trait VolMemcopy<T>: Sized {
     /// Write content of `slice` into the volatile store starting
     /// at `offset`.
     ///
-    /// If the `slice` is larger than (store_len - offset), then
+    /// If the `slice` is larger than `(store_len - offset)`, then
     /// the remaining values are not written to store.
     fn write_slice_at_offset(self, offset: usize, slice: &[T]);
 
@@ -22,7 +22,7 @@ pub trait VolMemcopy<T>: Sized {
 
     /// Write content of `slice` into the volatile store.
     ///
-    /// If the `slice` is larger than store_len, then
+    /// If the `slice` is larger than `store_len`, then
     /// the remaining values are not written to store.
     fn write_slice(self, slice: &[T]) {
         self.write_slice_at_offset(0, slice);

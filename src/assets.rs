@@ -5,7 +5,7 @@ use hal::tileset;
 use hal::video::{colmod, tile::map::HARDCODED_TILEMAP_WIDTH, Tileset};
 
 /// Asset definitions of the main game graphical elements.
-#[allow(non_upper_case_globals)]
+#[allow(non_upper_case_globals, clippy::wildcard_imports)]
 pub(crate) mod space {
     use super::*;
 
@@ -105,7 +105,7 @@ pub(crate) mod space {
 }
 
 /// Asset definitions of playable ships.
-#[allow(non_upper_case_globals)]
+#[allow(non_upper_case_globals, clippy::wildcard_imports)]
 pub(crate) mod players {
     use super::*;
 
@@ -144,7 +144,7 @@ pub(crate) mod players {
 }
 
 /// Asset definitions of the main menu.
-#[allow(non_upper_case_globals)]
+#[allow(non_upper_case_globals, clippy::wildcard_imports)]
 pub(crate) mod menu {
     use super::*;
 
