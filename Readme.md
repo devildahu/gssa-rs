@@ -59,8 +59,8 @@ code was:
    - [X] derive macro for const DEFAULT (or use a 3rd party crate)
    - [X] const assert in various places where relevant.
 - [X] Fix the text layouting algorithm
-- [ ] browse game menu, select ship
-- [ ] start game with selected ship
+- [X] browse game menu, select ship
+- [X] start game with selected ship
 - [ ] Improve the HAL so that I can implement what the old version used to have
    - [X] Fix include_bytes! alignment for all resource types similarly to palette!
    - [ ] Allow switching video mode in exec::GameState

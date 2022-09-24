@@ -13,7 +13,7 @@ log = ["hal/log"]
 [dependencies]
 # NOTE: renamed to use hal::*; in source code
 hal = { version = "0.4", package = "haldvance", path = "haldvance" }
-assets = { version = "0.1", package = "gbassets", path = "gbassets" }
+gbassets = { version = "0.1", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
 
 [workspace]

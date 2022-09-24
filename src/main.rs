@@ -3,7 +3,8 @@
 #![no_main]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::redundant_pub_crate)]
-#![feature(const_mut_refs)]
+// mixed_integer_ops: going to stabilize something like next week
+#![feature(const_mut_refs, const_replace, mixed_integer_ops)]
 
 mod assets;
 mod game;
@@ -60,7 +61,7 @@ pub fn main() -> ! {
     video_control.load_tileset(cbb::Slot::_0, &assets::menu::set);
     video_control.load_palette(assets::menu::palette.get());
     video_control.enable_layer(Layer::<mode::Text>::_0);
-    hal::warn!("hello world");
+    hal::warn!("babbooon metal world");
     {
         let mut layer = video_control.layer(layer::Slot::_0);
         layer.set_color_mode::<colmod::Bit8>();

@@ -34,14 +34,12 @@ impl Keys {
 
 /// A direction, usually DPAD
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Dir(u16);
-// To emulate enum members with consts
-#[allow(non_upper_case_globals)]
-impl Dir {
-    pub const Right: Self = Self(1 << 0);
-    pub const Left: Self = Self(1 << 1);
-    pub const Up: Self = Self(1 << 2);
-    pub const Down: Self = Self(1 << 3);
+#[repr(u16)]
+pub enum Dir {
+    Right = 1 << 0,
+    Left = 1 << 1,
+    Up = 1 << 2,
+    Down = 1 << 3,
 }
 /// A GBA button.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -55,7 +53,7 @@ impl Key {
     pub const Select: Self = Self(1 << 2);
     pub const Start: Self = Self(1 << 3);
     pub const fn Dpad(dir: Dir) -> Self {
-        Self(dir.0 << 4)
+        Self((dir as u16) << 4)
     }
     pub const L: Self = Self(1 << 8);
     pub const R: Self = Self(1 << 9);
@@ -119,6 +117,26 @@ pub struct Input {
     pub(crate) previous: Keys,
 }
 impl Input {
+    // TODO: optimization
+    pub fn direction(self) -> Option<Dir> {
+        match () {
+            () if self.pressed(Dir::Down) => Some(Dir::Down),
+            () if self.pressed(Dir::Up) => Some(Dir::Up),
+            () if self.pressed(Dir::Left) => Some(Dir::Left),
+            () if self.pressed(Dir::Right) => Some(Dir::Right),
+            () => None,
+        }
+    }
+    // TODO: optimization
+    pub const fn just_direction(self) -> Option<Dir> {
+        match () {
+            () if self.just_pressed(Key::Dpad(Dir::Down)) => Some(Dir::Down),
+            () if self.just_pressed(Key::Dpad(Dir::Up)) => Some(Dir::Up),
+            () if self.just_pressed(Key::Dpad(Dir::Left)) => Some(Dir::Left),
+            () if self.just_pressed(Key::Dpad(Dir::Right)) => Some(Dir::Right),
+            () => None,
+        }
+    }
     // TODO: make those functions const once <https://github.com/rust-lang/rust/issues/67792>
     // lands
     pub fn pressed(self, key: impl Into<KeyGroup>) -> bool {
@@ -128,15 +146,18 @@ impl Input {
     pub fn released(self, key: impl Into<KeyGroup>) -> bool {
         !self.pressed(key)
     }
-    // TODO: this doesn't optimize like I'd expect
-    pub fn just_pressed(self, key: Key) -> bool {
-        let key = key.into();
+    // TODO: this doesn't optimize like I'd expect:
+    // I was expecting that this would fold into a single comparison instruction,
+    // but it seems not.
+    // TODO: Key => impl Into<KeyGroup>
+    pub const fn just_pressed(self, key: Key) -> bool {
+        let key = KeyGroup(key.0);
         let current = self.current.any_pressed(key);
         let previous = self.previous.any_pressed(key);
         current && !previous
     }
-    pub fn just_released(self, key: Key) -> bool {
-        let key = key.into();
+    pub const fn just_released(self, key: Key) -> bool {
+        let key = KeyGroup(key.0);
         let current = self.current.any_pressed(key);
         let previous = self.previous.any_pressed(key);
         !current && previous

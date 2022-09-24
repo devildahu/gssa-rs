@@ -155,7 +155,7 @@ macro_rules! layout {
             $( layout!( @hint to_change $hint $hint_args ); )*
         })
     };
-    (@hint $to_change:ident rect ($refer:expr, $width:literal x $height:literal)) => {
+    (@hint $to_change:ident rect ($refer:expr, $width:tt x $height:tt)) => {
         *$refer = $to_change.pos();
         $to_change.add_rect($width, $height)
     };

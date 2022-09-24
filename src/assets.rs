@@ -1,8 +1,8 @@
 //! Embedded game asset definitions.
 
-use assets::{palette, Cycle, Image, Palette};
+use gbassets::{palette, Cycle, Image, Palette};
 use hal::tileset;
-use hal::video::{colmod, tile::map::HARDCODED_TILEMAP_WIDTH, Tileset};
+use hal::video::{colmod, Tileset};
 
 /// Asset definitions of the main game graphical elements.
 #[allow(non_upper_case_globals, clippy::wildcard_imports)]
@@ -148,11 +148,28 @@ pub(crate) mod players {
 pub(crate) mod menu {
     use super::*;
 
+    pub(crate) mod player_ships {
+        use super::*;
+
+        const fn ship_image(index: u16) -> Image {
+            let offset = title_card.offset + title_card.width as u16 + index * 4;
+            Image {
+                tileset_width: 32,
+                offset,
+                width: 3,
+                height: 3,
+            }
+        }
+        pub(crate) const blank: Image = ship_image(0);
+        pub(crate) const spear: Image = ship_image(1);
+        pub(crate) const paladin: Image = ship_image(2);
+    }
+
     pub(crate) const set: Tileset<colmod::Bit8> = tileset!("menuset_til.bin");
     pub(crate) const palette: Palette = palette!("menuset_pal.bin");
     // TODO: all the main menu tileset individual images
     pub(crate) const title_card: Image = Image {
-        tileset_width: HARDCODED_TILEMAP_WIDTH,
+        tileset_width: 32,
         offset: 96,
         width: 17,
         height: 9,

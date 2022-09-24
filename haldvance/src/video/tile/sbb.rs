@@ -4,10 +4,9 @@ use volmatrix::rw::{VolBlock, VolMatrix};
 
 use crate::video::{
     mode::{Mode, TileMode},
+    tile::{map, Drawable, Tile, SBB, SBB_SIZE},
     VideoControl,
 };
-
-use super::{map, Drawable, Tile, SBB, SBB_SIZE};
 
 #[cfg(doc)]
 use crate::video::{colmod, tile::layer};
@@ -21,15 +20,16 @@ use crate::video::{colmod, tile::layer};
 #[derive(Clone, Copy)]
 pub struct Slot(usize);
 impl Slot {
+    // TODO: handle different screen sizes based on tile mode
     /// Handle for a given sbb and screen size.
     pub(super) const fn handle<M: TileMode>(
         self,
-        width: map::ScreenSize,
+        size: map::TextSize,
         ctrl: &mut VideoControl<M>,
     ) -> Handle<M> {
         Handle {
             _ctrl: ctrl,
-            width,
+            region: size.region(),
             sbb: self.index_volmatrix(SBB),
         }
     }
@@ -39,6 +39,11 @@ impl Slot {
     }
     /// How many Sbb slot there is.
     pub const MAX_BLOCKS: usize = super::SBB_COUNT;
+    /// The sbb slot of index `inner`.
+    ///
+    /// # Panics
+    ///
+    /// When `inner >= Self::MAX_BLOCKS`
     pub const fn new(inner: usize) -> Self {
         assert!(inner < Self::MAX_BLOCKS);
         Self(inner)
@@ -103,18 +108,29 @@ impl Slot {
 pub struct Handle<'a, M: Mode> {
     _ctrl: &'a mut VideoControl<M>,
     sbb: VolBlock<TextTile, SBB_SIZE>,
-    width: map::ScreenSize,
+    region: map::Rect,
 }
 impl<'a, M: TileMode> Handle<'a, M> {
-    pub fn set_tile(&mut self, pos: map::Pos, tile: Tile) {
+    pub fn set_tile(&mut self, tile: Tile, pos: map::Pos) {
         // TODO: very poor perf, probably can make Pos const generic
         // over maximum sizes, so that access is compile-time checked.
-        let to_set = self.sbb.index(pos.x + pos.y * self.width);
+        let to_set = self.sbb.index(pos.x + pos.y * self.region.width);
         to_set.write(tile.get());
     }
-    pub fn set_tiles(&mut self, pos: map::Pos, drawable: &impl Drawable) {
-        drawable.for_each_tile(pos, self.width, |tile, pos| {
-            self.set_tile(pos, tile);
+    pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+        drawable.for_each_clear_tile(|pos| {
+            let pos = pos + offset;
+            if self.region.contains(pos) {
+                self.set_tile(Tile::EMPTY, pos);
+            }
+        });
+    }
+    pub fn set_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+        drawable.for_each_tile(|tile, pos| {
+            let pos = pos + offset;
+            if self.region.contains(pos) {
+                self.set_tile(tile, pos);
+            }
         });
     }
 }

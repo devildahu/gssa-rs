@@ -67,7 +67,7 @@ pub struct Image {
     pub height: usize,
 }
 impl tile::Drawable for Image {
-    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, pos: Pos, screen_width: usize, mut f: F) {
+    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
         let Self {
             height,
             offset,
@@ -83,8 +83,7 @@ impl tile::Drawable for Image {
                     x: x as usize,
                     y: y as usize,
                 };
-                // TODO: do not go beyond screen_width
-                f(tile, pos + offset)
+                f(tile, offset)
             }
         }
     }

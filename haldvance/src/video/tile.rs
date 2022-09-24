@@ -1,5 +1,5 @@
 pub mod cbb;
-mod drawable;
+pub mod drawable;
 pub mod layer;
 pub mod map;
 pub mod sbb;
@@ -96,9 +96,14 @@ impl<M: TileMode> VideoControl<M> {
     pub fn load_palette(&mut self, palette: &[Color]) {
         BG_PALRAM.write_slice(palette);
     }
+    // TODO: consider if supporting `map::AffineSize` is necessary.
     /// Obtain a [`sbb::Handle`] to write tiles into a tile map.
-    pub fn sbb(&mut self, slot: sbb::Slot) -> sbb::Handle<M> {
-        slot.handle(map::HARDCODED_TILEMAP_WIDTH as usize, self)
+    pub const fn sbb(&mut self, slot: sbb::Slot, map_size: map::TextSize) -> sbb::Handle<M> {
+        slot.handle(map_size, self)
+    }
+    /// Equivalent to `self.sbb(map::TextSize::Base, slot)`, see [`Self::sbb`].
+    pub const fn basic_sbb(&mut self, slot: sbb::Slot) -> sbb::Handle<M> {
+        slot.handle(map::TextSize::Base, self)
     }
 }
 

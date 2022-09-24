@@ -47,8 +47,8 @@ impl ConsoleState {
     /// # Performance
     ///
     /// This performs much better if `frequency` is a power of two.
-    pub fn every<F: FnOnce(&Self)>(&self, offset: usize, frequency: usize, f: F) {
-        let offset = self.frame + offset;
+    pub fn every<F: FnOnce(&Self)>(&self, offset: isize, frequency: usize, f: F) {
+        let offset = self.frame.wrapping_add_signed(offset);
         (offset % frequency == 0).then(|| f(self));
     }
 }
