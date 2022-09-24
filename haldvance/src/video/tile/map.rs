@@ -1,4 +1,4 @@
-use core::ops::Add;
+use core::ops;
 
 use const_default::ConstDefault;
 
@@ -48,12 +48,29 @@ pub struct Pos {
     pub x: usize,
     pub y: usize,
 }
-impl Add<Pos> for Pos {
+impl Pos {
+    pub const fn x(value: usize) -> Self {
+        Pos { x: value, y: 0 }
+    }
+    pub const fn y(value: usize) -> Self {
+        Pos { x: 0, y: value }
+    }
+}
+impl ops::Add<Pos> for Pos {
     type Output = Pos;
     fn add(self, other: Pos) -> Pos {
         Pos {
             x: self.x + other.x,
             y: self.y + other.y,
+        }
+    }
+}
+impl ops::Sub<Pos> for Pos {
+    type Output = Pos;
+    fn sub(self, other: Pos) -> Pos {
+        Pos {
+            x: self.x - other.x,
+            y: self.y - other.y,
         }
     }
 }

@@ -106,14 +106,12 @@ pub struct Handle<'a, M: Mode> {
     width: map::ScreenSize,
 }
 impl<'a, M: TileMode> Handle<'a, M> {
-    #[inline]
     pub fn set_tile(&mut self, pos: map::Pos, tile: Tile) {
         // TODO: very poor perf, probably can make Pos const generic
         // over maximum sizes, so that access is compile-time checked.
         let to_set = self.sbb.index(pos.x + pos.y * self.width);
         to_set.write(tile.get());
     }
-    #[inline]
     pub fn set_tiles(&mut self, pos: map::Pos, drawable: &impl Drawable) {
         drawable.for_each_tile(pos, self.width, |tile, pos| {
             self.set_tile(pos, tile);

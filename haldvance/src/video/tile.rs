@@ -5,7 +5,7 @@ pub mod map;
 pub mod sbb;
 pub mod set;
 
-use core::{mem, slice};
+use core::mem;
 
 use gba::mmio_types::TextTile;
 use volmatrix::{

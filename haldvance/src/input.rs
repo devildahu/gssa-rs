@@ -1,45 +1,144 @@
 //! GBA input.
 //!
 //! Check the [`Input`] struct.
-use gba::mmio_types::Keys;
+use core::ops;
+
+use const_default::ConstDefault;
+
+use volmatrix::{Safe, VolAddress};
+
+// SAFETY: non-zero, proper access pattern
+pub(crate) const KEYINPUT: VolAddress<Keys, Safe, ()> = unsafe { VolAddress::new(0x0400_0130) };
+
+/// The GBA buttons state.
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Keys(u16);
+impl ConstDefault for Keys {
+    const DEFAULT: Self = Keys(0xFFFF);
+}
+impl Keys {
+    /// Is **any** of the buttons of this [`KeyGroup`] pressed?
+    pub const fn any_pressed(self, keys: KeyGroup) -> bool {
+        // NOTE: bit=1 means the button is released, while
+        // bit=0 means it's pressed
+        keys.0 & self.0 != keys.0
+    }
+    /// Are **all** of the buttons of this [`KeyGroup`] pressed?
+    pub const fn all_pressed(self, keys: KeyGroup) -> bool {
+        // NOTE: bit=1 means the button is released, while
+        // bit=0 means it's pressed
+        keys.0 & self.0 == 0
+    }
+}
+
+/// A direction, usually DPAD
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Dir(u16);
+// To emulate enum members with consts
+#[allow(non_upper_case_globals)]
+impl Dir {
+    pub const Right: Self = Self(1 << 0);
+    pub const Left: Self = Self(1 << 1);
+    pub const Up: Self = Self(1 << 2);
+    pub const Down: Self = Self(1 << 3);
+}
+/// A GBA button.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Key(u16);
+
+// To emulate enum members with consts
+#[allow(non_snake_case, non_upper_case_globals)]
+impl Key {
+    pub const A: Self = Self(1 << 0);
+    pub const B: Self = Self(1 << 1);
+    pub const Select: Self = Self(1 << 2);
+    pub const Start: Self = Self(1 << 3);
+    pub const fn Dpad(dir: Dir) -> Self {
+        Self(dir.0 << 4)
+    }
+    pub const L: Self = Self(1 << 8);
+    pub const R: Self = Self(1 << 9);
+}
+/// Multiple GBA buttons.
+///
+/// Use the `From<Key>` and `From<Dir>` impl to create a
+/// `KeyGroup`, and use `|` to combine multiple.
+///
+/// # Example
+///
+/// ```
+/// use haldvance::input::{Key, KeyGroup, Dir};
+///
+/// let group1 = Key::A | Key::L;
+/// let group2 = Key::B | Key::R;
+/// let group3 = Key::A | Key::L | Key::B | Key::R;
+/// assert_eq!(group1 | group2, group3);
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct KeyGroup(u16);
+impl ops::BitOr<Self> for KeyGroup {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+impl ops::BitOr<Key> for Key {
+    type Output = KeyGroup;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        KeyGroup(self.0 | rhs.0)
+    }
+}
+impl ops::BitOr<Key> for KeyGroup {
+    type Output = Self;
+
+    fn bitor(self, rhs: Key) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+impl From<Dir> for KeyGroup {
+    fn from(dir: Dir) -> Self {
+        Key::Dpad(dir).into()
+    }
+}
+impl From<Key> for KeyGroup {
+    fn from(key: Key) -> Self {
+        KeyGroup(key.0)
+    }
+}
 
 /// The GBA input state.
 ///
 /// In [`crate::exec::full_game`], the `Input` struct passed as argument
 /// to the `logic` method is updated every frame.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, ConstDefault)]
 pub struct Input {
-    pub(crate) keypad: Keys,
+    pub(crate) current: Keys,
+    pub(crate) previous: Keys,
 }
 impl Input {
-    pub const fn a(&self) -> bool {
-        self.keypad.a()
+    // TODO: make those functions const once <https://github.com/rust-lang/rust/issues/67792>
+    // lands
+    pub fn pressed(self, key: impl Into<KeyGroup>) -> bool {
+        let key = key.into();
+        self.current.any_pressed(key)
     }
-    pub const fn b(&self) -> bool {
-        self.keypad.b()
+    pub fn released(self, key: impl Into<KeyGroup>) -> bool {
+        !self.pressed(key)
     }
-    pub const fn l(&self) -> bool {
-        self.keypad.l()
+    // TODO: this doesn't optimize like I'd expect
+    pub fn just_pressed(self, key: Key) -> bool {
+        let key = key.into();
+        let current = self.current.any_pressed(key);
+        let previous = self.previous.any_pressed(key);
+        current && !previous
     }
-    pub const fn r(&self) -> bool {
-        self.keypad.r()
-    }
-    pub const fn select(&self) -> bool {
-        self.keypad.select()
-    }
-    pub const fn start(&self) -> bool {
-        self.keypad.start()
-    }
-    pub const fn right(&self) -> bool {
-        self.keypad.right()
-    }
-    pub const fn left(&self) -> bool {
-        self.keypad.left()
-    }
-    pub const fn up(&self) -> bool {
-        self.keypad.up()
-    }
-    pub const fn down(&self) -> bool {
-        self.keypad.down()
+    pub fn just_released(self, key: Key) -> bool {
+        let key = key.into();
+        let current = self.current.any_pressed(key);
+        let previous = self.previous.any_pressed(key);
+        !current && previous
     }
 }

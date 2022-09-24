@@ -2,12 +2,15 @@
 //!
 //! Higher level API to deal with game loop,
 //! proper handling of draw commands etc.
+use core::mem;
 
 use const_default::ConstDefault;
-use gba::mmio_addresses::{KEYINPUT, VCOUNT};
+use gba::mmio_addresses::VCOUNT;
 
-use crate::video::{mode, VideoControl};
-use crate::Input;
+use crate::{
+    input::{Input, KEYINPUT},
+    video::{mode, VideoControl},
+};
 
 enum ControlModes {
     Text(VideoControl<mode::Text>),
@@ -35,6 +38,8 @@ fn spin_until_vdraw() {
 pub struct ConsoleState {
     /// The frame count.
     pub frame: usize,
+    /// The button state
+    pub input: Input,
 }
 impl ConsoleState {
     /// Run `f` once every `frequency` frame, with given `offset`.
@@ -56,7 +61,7 @@ impl ConsoleState {
 /// be handled (if only to enter a different mode).
 pub trait GameState {
     /// The game logic, updates the state based on input for current frame.
-    fn logic(&mut self, console: &ConsoleState, input: Input);
+    fn logic(&mut self, console: &ConsoleState);
 
     /// Draw stuff in [`mode::Text`], text mode is the initial video mode.
     ///
@@ -92,10 +97,9 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     let mut video_control = ControlModes::Text(unsafe { VideoControl::<mode::Text>::init() });
     let mut console = ConsoleState::DEFAULT;
     loop {
-        let input = Input {
-            keypad: KEYINPUT.read().into(),
-        };
-        state.logic(&console, input);
+        console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read().into());
+
+        state.logic(&console);
         console.frame = console.frame.wrapping_add(1);
 
         spin_until_vblank();
