@@ -7,12 +7,14 @@ build_flags =
 
 check:
 	cargo clippy
-	cargo doc
-	
-run_cargo:
-	cargo build --release $(build_flags)
 
-target/thumbv4t-none-eabi/release/gssa-rust: run_cargo
+# Force running cargo build (and waiting until completion)
+# when executing the rule to produce release/gssa-rust.
+# Otherwise, the next rule in pracitce does nothing
+FORCE: ;
+
+target/thumbv4t-none-eabi/release/gssa-rust: FORCE
+	cargo build --release $(build_flags)
 
 target/gssa-rust.gba: target/thumbv4t-none-eabi/release/gssa-rust
 	arm-none-eabi-objcopy -O binary \
