@@ -1,9 +1,9 @@
 emulator = mgba -l 255
-RUST_SRC = $(shell find src -type f)
+TARGET = $(shell cargo metadata --format-version=1 | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p')
 build_flags = 
 
 .DEFAULT_GOAL: check
-.PHONY: run_cargo check
+.PHONY: check
 
 check:
 	cargo clippy
@@ -13,14 +13,15 @@ check:
 # Otherwise, the next rule in pracitce does nothing
 FORCE: ;
 
-target/thumbv4t-none-eabi/release/gssa-rust: FORCE
+$(TARGET)/thumbv4t-none-eabi/release/gssa-rust: FORCE
 	cargo build --release $(build_flags)
 
-target/gssa-rust.gba: target/thumbv4t-none-eabi/release/gssa-rust
+build/gssa-rust.gba: $(TARGET)/thumbv4t-none-eabi/release/gssa-rust
+	mkdir build
 	arm-none-eabi-objcopy -O binary \
-		target/thumbv4t-none-eabi/release/gssa-rust \
-		target/gssa-rust.gba
-	gbafix target/gssa-rust.gba
+		$(TARGET)/thumbv4t-none-eabi/release/gssa-rust \
+		build/gssa-rust.gba
+	gbafix build/gssa-rust.gba
 
-run: target/gssa-rust.gba
-	$(emulator) target/gssa-rust.gba
+run: build/gssa-rust.gba
+	$(emulator) build/gssa-rust.gba
