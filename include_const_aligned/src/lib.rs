@@ -9,7 +9,7 @@
 /// Like [`include_bytes!`], but allow specification of the alignment.
 #[macro_export]
 macro_rules! include_const_aligned {
-    ($align_to:ty, $path:expr $(,)?) => {{
+    ($align_to:ty, $path:expr $(,)*) => {{
         #[repr(C)]
         struct Aligned<Align, T: ?Sized> {
             _align: [Align; 0],
@@ -34,7 +34,7 @@ macro_rules! include_const_aligned {
 /// The bit pattern in file specified with `$path` must be a valid `$T`.
 #[macro_export]
 macro_rules! include_const_transmutted {
-    ($T:ty, $path:expr $(,)?) => {{
+    ($T:ty, $path:expr $(,)*) => {{
         // Define in a const fn to make sure we are not
         // accidentally adding runtime overhead.
         const unsafe fn read_data() -> &'static [$T] {
