@@ -14,22 +14,9 @@ I've updated the project to use a more recent version of rust
 
 ### Steps
 
-1. Devkit-pro. See their [getting started page](https://devkitpro.org/wiki/Getting_Started).
-2. `cargo-xbuild`
-
-```sh
-rustup update
-rustup default nightly
-rustup component add rust-src
-cargo install cargo-xbuild
-```
-
-3. `make` and `find` (posix stuff)
-
-4. A symbolic link to the `resources` folder of the gssa C code. (see [the project page](https://gitlab.com/nicopap/gssa/-/tree/master))
-\
-   It's actually quite easy! In the gssa project root:
-\
+1. See the [`gba`] crate README for initial setup details
+2. A symbolic link to the `resources` folder of the gssa C code. (see the
+   [gssa page])
 ```sh
 cd png2gba
 make
@@ -37,21 +24,40 @@ cd ..
 make make_resources
 ```
 
-5. a GBA emulator (`mgba` is currently hard-coded in the Makefile, and is
+3. A GBA emulator (`mgba` is currently hard-coded in the Makefile, and is
    currently the best GBA emulator there is, so strongly recommended)
+4. `cargo run`
 
-6. `make run`
+You may also use the `Makefile` reciepes by installing a basic POSIX
+environment:
+
+- `sed`
+- `make`
+- Stuff you should have installed following the [`gba`] crate instructions
+
+To inspect generated assembly, you may use [`cargo-show-asm`]. For inspecting
+the assembly of a specific function, add the `#[inline(never)]` attribute to
+the function and run the following command (with the last bit swapped with
+the name of the function you want to inspect, use `cargo asm` without
+specifying a function to inspect to see a list of inspectable functions):
+
+```sh
+cargo asm --att --no-default-features \
+  --target thumbv4t-none-eabi \
+  --rust "gssa_rust::game::mainmenu::MainmenuData::draw_title_screen"
+```
 
 ## Current features
-
-Currently, the title screen shows up, and pressing "start" as the game suggests
-stops the game execution.
 
 This port aims to accomplish feature-parity and further with the original gssa.
 The tricky bit being that the original being written in the dodgiest C possible,
 I'm having constant trouble compiling it.
+
 The highest point of functionality I managed to accomplish with the original C
 code was:
+
+(checkmarked entries are implemented in Rust, non-checkmarked only exist in the
+C version)
 
 - [X] Split src/video_control.rs into an independent HAL (hardware abstraction layer)
    - [X] Update to latest rustc version, hopefully allowing me to use RA.
@@ -63,7 +69,6 @@ code was:
 - [X] start game with selected ship
 - [ ] Improve the HAL so that I can implement what the old version used to have
    - [X] Fix include_bytes! alignment for all resource types similarly to palette!
-   - [ ] Allow switching video mode in exec::GameState
    - [ ] Add OBJ handling
    - [ ] Palette manager
    - [ ] Use interrupts over busy-looping for waiting VBLANK
@@ -75,9 +80,18 @@ code was:
       (the two being the same)
 - [ ] random drops allowing to restore health
 - [ ] random drop allowing to change weapon
+- [ ] Complete console lockup with a blue screen saying "you ded" when game over
+
+Following are probably never going to happen, but are long term potential
+developpment for the game.
+
+- [ ] Conditionally compile the rust-console/gba debugging facilities to elide
+      them from the final binary when not using them.
+- [ ] Proper game over screen with restart option and score.
 - [ ] Game over screen similar to a panic
 - [ ] Setup <https://github.com/est31/warnalyzer> for multi-crate dead code detection
 - [ ] Improve the HAL so that it's possible to make a fully-featured game
+   - [ ] Allow switching video mode in exec::GameState
    - [ ] proc/simple macro for generating _1, _2 etc. for typesafe registry values.
    - [ ] Tooling to generate 4bpp and 8bpp tilemaps and declare rust structs
          for image layouts, integrate palette management into asset pipeline
@@ -102,3 +116,6 @@ chose a ship and start the game, get a scrolling space background,
 but no space ships shows up on screen.
 
 [effectgames article]: http://www.effectgames.com/effect/article-Old_School_Color_Cycling_with_HTML5.html
+[gssa page]: https://gitlab.com/nicopap/gssa/-/tree/master
+[`gba`]: https://github.com/rust-console/gba
+[`cargo-show-asm`]: https://crates.io/crates/cargo-show-asm
