@@ -8,7 +8,7 @@ license = "Zlib OR Apache-2.0"
 keywords = ["gba"]
 
 [dependencies]
-gba = { version = "0.5.3", path = "../../../git/gba" }
+gba = { version = "0.5.3", git = "https://github.com/nicopap/gba.git", branch = "text-bg-entry" }
 include_const_aligned = { version = "0.4.0", path = "../include_const_aligned" }
 haldvance = { version = "0.4", path = "../haldvance" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }

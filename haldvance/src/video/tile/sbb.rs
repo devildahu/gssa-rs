@@ -1,5 +1,5 @@
 //! Structs related to the Tile Map, aka Screen Base Block.
-use gba::mmio_types::TextTile;
+use gba::mmio_types::TextEntry;
 use volmatrix::rw::{VolBlock, VolMatrix};
 
 use crate::video::{
@@ -107,7 +107,7 @@ impl Slot {
 /// information, the thing that is either encoded as .
 pub struct Handle<'a, M: Mode> {
     _ctrl: &'a mut VideoControl<M>,
-    sbb: VolBlock<TextTile, SBB_SIZE>,
+    sbb: VolBlock<TextEntry, SBB_SIZE>,
     region: map::Rect,
 }
 impl<'a, M: TileMode> Handle<'a, M> {

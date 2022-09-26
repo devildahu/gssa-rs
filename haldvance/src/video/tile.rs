@@ -7,7 +7,7 @@ pub mod set;
 
 use core::mem;
 
-use gba::mmio_types::TextTile;
+use gba::mmio_types::TextEntry;
 use volmatrix::{
     rw::{VolBlock, VolMatrix},
     VolMemcopy,
@@ -28,12 +28,12 @@ pub use set::Tileset;
 
 /// A tile for [`sbb::Handle::set_tile`].
 #[derive(Clone, Copy)]
-pub struct Tile(TextTile);
+pub struct Tile(TextEntry);
 impl Tile {
     pub const EMPTY: Self = Tile::new(0);
 
     pub const fn new(tile_id: u16) -> Self {
-        Self(TextTile::from_tile_id(tile_id))
+        Self(TextEntry::new().with_tile_index(tile_id))
     }
     pub const fn flip_hori(self) -> Self {
         Self(self.0.with_hflip(!self.0.hflip()))
@@ -47,9 +47,9 @@ impl Tile {
     ///
     /// This has no effect if the color mode of the background is [`colmod::Bit8`].
     pub const fn with_palette(self, palette: palette::BankHandle) -> Self {
-        Self(self.0.with_palbank(palette.id))
+        Self(self.0.with_palbank_index(palette.id))
     }
-    pub(crate) const fn get(self) -> TextTile {
+    pub(crate) const fn get(self) -> TextEntry {
         self.0
     }
 }
@@ -117,12 +117,12 @@ const PALRAM_SIZE: usize = 256;
 // SAFETY:
 // - VRAM_BASE_USIZE is non-zero
 // - GBA VRAM bus size is 16 bits
-// - TextTile is repr(transparent) on u16
+// - TextEntry is repr(transparent) on u16
 // - the stack doesn't expand to VRAM, and we do not use an allocator
 // - GBA VRAM size is 0x10000 (2**16)
 //   == 0x400 * size_of(Entry) * 32
 //   == 0x2000 * size_of(u16) * 4
-const SBB: VolMatrix<TextTile, SBB_SIZE, SBB_COUNT> = unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
+const SBB: VolMatrix<TextEntry, SBB_SIZE, SBB_COUNT> = unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
 // TODO: a type-safe struct for tile info
 const TILE_IMG_DATA: VolMatrix<u16, CBB_SIZE, CBB_COUNT> =
     unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };

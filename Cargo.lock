@@ -26,6 +26,7 @@ dependencies = [
 [[package]]
 name = "gba"
 version = "0.5.3"
+source = "git+https://github.com/nicopap/gba.git?branch=text-bg-entry#f8e4b67ffe162a42150af528d08d59e184cd1393"
 dependencies = [
  "voladdress",
 ]
