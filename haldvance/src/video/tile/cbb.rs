@@ -7,7 +7,8 @@ use volmatrix::rw::{VolBlock, VolMatrix};
 pub struct Slot(usize);
 impl Slot {
     /// Get the offset-th next CBB, None if no such thing exists.
-    pub(super) const fn add(&self, offset: usize) -> Option<Self> {
+    #[must_use]
+    pub(super) const fn add(self, offset: usize) -> Option<Self> {
         if self.0 + offset < Self::MAX_BLOCKS {
             // SAFETY: we make sure to not go over MAX_BLOCKS
             Some(unsafe { Self::new_unchecked(self.0 + offset) })
@@ -17,6 +18,13 @@ impl Slot {
     }
     /// How many Cbb slot there is.
     pub const MAX_BLOCKS: usize = super::CBB_COUNT;
+
+    /// Create a new CBB slot.
+    ///
+    /// # Panics
+    ///
+    /// (const) when `inner >= Self::MAX_BLOCKS`.
+    #[must_use]
     pub const fn new(inner: usize) -> Self {
         assert!(inner < Self::MAX_BLOCKS);
         Self(inner)

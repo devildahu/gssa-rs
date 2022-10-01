@@ -1,3 +1,4 @@
+//! Deal with tile-based GBA video modes, see [`Mode`].
 pub mod cbb;
 pub mod drawable;
 pub mod layer;
@@ -13,10 +14,13 @@ use volmatrix::{
     VolMemcopy,
 };
 
-use crate::video::{
-    colmod,
-    mode::{Affine, Mixed, Text, TileMode},
-    palette, VideoControl,
+use crate::{
+    sane_assert,
+    video::{
+        colmod,
+        mode::{Affine, Mixed, Text, TileMode},
+        object, palette, VideoControl,
+    },
 };
 
 #[cfg(doc)]
@@ -26,18 +30,49 @@ pub use drawable::Drawable;
 pub use gba::mmio_types::Color;
 pub use set::Tileset;
 
+const SBB_SIZE: usize = 0x400;
+const SBB_COUNT: usize = 32;
+const CBB_SIZE: usize = 0x2000;
+const CBB_COUNT: usize = 4;
+const PALRAM_ADDR_USIZE: usize = 0x500_0000;
+const VRAM_ADDR_USIZE: usize = 0x600_0000;
+const PALRAM_SIZE: usize = 256;
+// SAFETY:
+// - VRAM_BASE_USIZE is non-zero
+// - GBA VRAM bus size is 16 bits
+// - TextEntry is repr(transparent) on u16
+// - the stack doesn't expand to VRAM, and we do not use an allocator
+// - GBA VRAM size is 0x10000 (2**16)
+//   == 0x400 * size_of(Entry) * 32
+//   == 0x2000 * size_of(u16) * 4
+const SBB: VolMatrix<TextEntry, SBB_SIZE, SBB_COUNT> = unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
+// TODO: a type-safe struct for tile info
+const TILE_IMG_DATA: VolMatrix<u16, CBB_SIZE, CBB_COUNT> =
+    unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
+// TODO: 4bpp mode palram
+// SAFETY:
+// - PALRAM_ADDR_USIZE is non-zero
+// - repr(u16) Color & BG_PALRAM bus size is 16
+// - BG_PALRAM size is 1Kb == 4 * 256
+const BG_PALRAM: VolBlock<Color, PALRAM_SIZE> = unsafe { VolBlock::new(PALRAM_ADDR_USIZE) };
+pub(super) const OBJ_PALRAM: VolBlock<Color, PALRAM_SIZE> =
+    unsafe { VolBlock::new(PALRAM_ADDR_USIZE + PALRAM_SIZE * mem::size_of::<Color>()) };
+
 /// A tile for [`sbb::Handle::set_tile`].
 #[derive(Clone, Copy)]
 pub struct Tile(TextEntry);
 impl Tile {
-    pub const EMPTY: Self = Tile::new(0);
+    pub const EMPTY: Self = Self::new(0);
 
+    #[must_use]
     pub const fn new(tile_id: u16) -> Self {
         Self(TextEntry::new().with_tile_index(tile_id))
     }
+    #[must_use]
     pub const fn flip_hori(self) -> Self {
         Self(self.0.with_hflip(!self.0.hflip()))
     }
+    #[must_use]
     pub const fn flip_vert(self) -> Self {
         Self(self.0.with_vflip(!self.0.vflip()))
     }
@@ -46,6 +81,7 @@ impl Tile {
     /// specified in the tilemap [`Tile`] data.
     ///
     /// This has no effect if the color mode of the background is [`colmod::Bit8`].
+    #[must_use]
     pub const fn with_palette(self, palette: palette::BankHandle) -> Self {
         Self(self.0.with_palbank_index(palette.id))
     }
@@ -98,39 +134,21 @@ impl<M: TileMode> VideoControl<M> {
     }
     // TODO: consider if supporting `map::AffineSize` is necessary.
     /// Obtain a [`sbb::Handle`] to write tiles into a tile map.
-    pub const fn sbb(&mut self, slot: sbb::Slot, map_size: map::TextSize) -> sbb::Handle<M> {
+    pub const fn sbb(&mut self, slot: sbb::Slot, map_size: &map::TextSize) -> sbb::Handle<M> {
         slot.handle(map_size, self)
     }
     /// Equivalent to `self.sbb(map::TextSize::Base, slot)`, see [`Self::sbb`].
     pub const fn basic_sbb(&mut self, slot: sbb::Slot) -> sbb::Handle<M> {
-        slot.handle(map::TextSize::Base, self)
+        slot.handle(&map::TextSize::Base, self)
+    }
+    /// Return a [`object::Tile`] to use with [`object::Handle::set_tile`].
+    ///
+    /// # Panics (`sane_assert`)
+    ///
+    /// If `index >= 1024`.
+    #[must_use]
+    pub const fn object_tile(&self, index: u16) -> object::Tile {
+        sane_assert!(index < 1024);
+        object::Tile::new(index)
     }
 }
-
-const SBB_SIZE: usize = 0x400;
-const SBB_COUNT: usize = 32;
-const CBB_SIZE: usize = 0x2000;
-const CBB_COUNT: usize = 4;
-const PALRAM_ADDR_USIZE: usize = 0x500_0000;
-const VRAM_ADDR_USIZE: usize = 0x600_0000;
-const PALRAM_SIZE: usize = 256;
-// SAFETY:
-// - VRAM_BASE_USIZE is non-zero
-// - GBA VRAM bus size is 16 bits
-// - TextEntry is repr(transparent) on u16
-// - the stack doesn't expand to VRAM, and we do not use an allocator
-// - GBA VRAM size is 0x10000 (2**16)
-//   == 0x400 * size_of(Entry) * 32
-//   == 0x2000 * size_of(u16) * 4
-const SBB: VolMatrix<TextEntry, SBB_SIZE, SBB_COUNT> = unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
-// TODO: a type-safe struct for tile info
-const TILE_IMG_DATA: VolMatrix<u16, CBB_SIZE, CBB_COUNT> =
-    unsafe { VolMatrix::new(VRAM_ADDR_USIZE) };
-// TODO: 4bpp mode palram
-// SAFETY:
-// - PALRAM_ADDR_USIZE is non-zero
-// - repr(u16) Color & BG_PALRAM bus size is 16
-// - BG_PALRAM size is 1Kb == 4 * 256
-const BG_PALRAM: VolBlock<Color, PALRAM_SIZE> = unsafe { VolBlock::new(PALRAM_ADDR_USIZE) };
-const _OBJ_PALRAM: VolBlock<Color, PALRAM_SIZE> =
-    unsafe { VolBlock::new(PALRAM_ADDR_USIZE + PALRAM_SIZE * mem::size_of::<Color>()) };

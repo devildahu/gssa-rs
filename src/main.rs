@@ -36,7 +36,7 @@ struct State {
     screen: Screen,
 }
 impl GameState for State {
-    fn logic(&mut self, console: &ConsoleState) {
+    fn logic(&mut self, console: &mut ConsoleState) {
         match &mut self.screen {
             Screen::Mainmenu(mainmenu) => {
                 mainmenu.logic(console);
@@ -44,7 +44,7 @@ impl GameState for State {
         }
     }
 
-    fn text_draw(&self, console: &ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
+    fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
         match &self.screen {
             Screen::Mainmenu(mainmenu) => mainmenu.text_draw(console, ctrl),
         }

@@ -1,3 +1,4 @@
+//! Deal with GBA video modes, see [`Mode`].
 #[cfg(doc)]
 use crate::video::{colmod, ColorMode};
 
@@ -5,12 +6,12 @@ use crate::video::{colmod, ColorMode};
 ///
 /// | Mode  | Layers (BG*) | Res | Tiles/double buffering | Colors | Features | Status|
 /// |:-----:|:------------:|:---:|:----------------------:|:------:|:--------:|:--------------------:|
-/// | [`Text`]        | 0-3 | 256^2 to 512^2  | [`map::TextSize`]  | 4/8bpp | Scroll, Flip | Done
-/// | [`Mixed`]       | 0-2 | BG0/1 ↑, BG2 ↓  | ← ibid           | ← ibid | ← ibid       | TODO
-/// | [`Affine`]      | 2,3 | 128^2 to 1024^2 | [`map::AffineSize`]| 4/8bpp | Scroll, Affine | TODO
-/// | `ColorBitmap`   | 2   | 240x160         | no               | RGB555   | Affine | TODO
-/// | `PaletteBitmap` | 2   | 240x160         | double buff      | 4bpp     | Affine | TODO
-/// | `LowBitmap`     | 2   | 160x128         | double buff      | RGB555   | Affine | TODO
+/// | [`Text`]        | 0,1,2,3 | 256² to 512²| [`map::TextSize`]  | 4/8bpp | Scroll, Flip | Done
+/// | [`Mixed`]       | 0,1,2 | BG0/1 ↑, BG2 ↓| ← ibid           | ← ibid | ← ibid       | TODO
+/// | [`Affine`]      | 2,3 | 128² to 1024² | [`map::AffineSize`]| 4/8bpp | Scroll, Affine | TODO
+/// | `ColorBitmap`   | 2   | 240×160       | no               | RGB555   | Affine | TODO
+/// | `PaletteBitmap` | 2   | 240×160       | double buff      | 4bpp     | Affine | TODO
+/// | `LowBitmap`     | 2   | 160×128       | double buff      | RGB555   | Affine | TODO
 ///
 /// See links to `Mode` implementors for fully detailed documentation.
 ///

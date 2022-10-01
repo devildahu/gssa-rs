@@ -19,6 +19,7 @@ impl<M: ColorMode> Tileset<M> {
     ///
     /// This should only be called inside of the [`crate::tileset!`] macro.
     #[doc(hidden)]
+    #[must_use]
     pub const fn new(data: &'static [u16]) -> Self {
         Self {
             data,

@@ -14,19 +14,19 @@ pub(crate) enum Axis {
 #[doc(hidden)]
 pub(crate) struct ToChange<'a, 'b, M: mode::TileMode> {
     pub(crate) axis: Axis,
-    pub(crate) x: &'a mut usize,
-    pub(crate) y: &'a mut usize,
+    pub(crate) x: &'a mut u16,
+    pub(crate) y: &'a mut u16,
     pub(crate) sbb: sbb::Handle<'b, M>,
 }
 /// State of layouting
 impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
-    pub(crate) const fn current_axis(&mut self) -> &mut usize {
+    pub(crate) const fn current_axis(&mut self) -> &mut u16 {
         match self.axis {
             Axis::X => self.x,
             Axis::Y => self.y,
         }
     }
-    pub(crate) const fn add_rect(&mut self, width: usize, height: usize) {
+    pub(crate) const fn add_rect(&mut self, width: u16, height: u16) {
         let value = match self.axis {
             Axis::X => width,
             Axis::Y => height,
@@ -34,7 +34,7 @@ impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
         let to_change = self.current_axis();
         *to_change += value;
     }
-    pub(crate) const fn add(&mut self, value: usize) {
+    pub(crate) const fn add(&mut self, value: u16) {
         let to_change = self.current_axis();
         *to_change += value;
     }
@@ -132,7 +132,7 @@ macro_rules! layout {
         $to_change.draw(&$text);
         let text_width = $text.split('\n').map(|line| line.len()).max().unwrap_or(0);
         let text_height = $text.chars().filter(|char| *char ==  '\n').count() + 1;
-        $to_change.add_rect(text_width, text_height)
+        $to_change.add_rect(text_width as u16, text_height as u16)
     };
     (@hint $to_change:ident image ($img:expr)) => {
         $to_change.draw(&$img);
@@ -143,7 +143,7 @@ macro_rules! layout {
         *$refer = $to_change.pos();
         let text_width = $text.split('\n').map(|line| line.len()).max().unwrap_or(0);
         let text_height = $text.chars().filter(|char| *char ==  '\n').count() + 1;
-        $to_change.add_rect(text_width, text_height)
+        $to_change.add_rect(text_width as u16, text_height as u16)
     };
     (@hint $to_change:ident vertical ($( $hint:ident $hint_args:tt ),+ $(,)?)) => {
         $to_change.vertical(|to_change| {

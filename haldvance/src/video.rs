@@ -12,14 +12,19 @@
 
 pub mod colmod;
 pub mod mode;
+pub mod object;
 pub mod palette;
 pub mod tile;
 
 use core::hint::unreachable_unchecked;
 use core::marker::PhantomData;
+use core::mem;
 
 use gba::mmio_addresses::DISPCNT;
 use gba::mmio_types::DisplayControl;
+use volmatrix::VolMemcopy;
+
+use tile::{Color, OBJ_PALRAM};
 
 pub use colmod::ColorMode;
 pub use mode::Mode;
@@ -29,8 +34,7 @@ pub use tile::Tile;
 
 /// Controls video memory in text mode.
 ///
-/// `VideoControl` is a zero-sized type (meaning it has no runtime representation)
-/// parametrized over [`M: Mode`](Mode).
+/// `VideoControl` is parametrized over [`M: Mode`](Mode).
 ///
 /// `M` reflects the current display mode, each display mode has a very different
 /// API, yet manipulates the same memory region. This is fundamentally unsafe,
@@ -39,20 +43,27 @@ pub use tile::Tile;
 /// # How to read this doc page
 ///
 /// Methods on `VideoControl` are divided in many different `impl` blocks. Each
-/// for a different subset of video modes. Some methods return a `*::Handle`,
+/// for a different subset of video modes. You can use the `[+]` at the left
+/// of `impl` to hide methods for specific video modes.
+///
+/// # How to use `VideoControl`
+///
+/// Some methods return a `*::Handle`,
 /// which might contain the methods you are looking for. For example, to draw
 /// something on-screen in [`mode::Text`] mode, you should:
+/// - Use [`VideoControl::load_palette`] to load a palette
+/// - Use [`VideoControl::load_tileset`] to load a tileset
 /// - call [`VideoControl::sbb`] to get a [`tile::sbb::Handle`],
-/// - then call [`tile::sbb::Handle::set_tiles`] with the [`tile::Drawable`]
+/// - Use [`tile::sbb::Handle::set_tiles`] with the [`tile::Drawable`]
 ///   you want to display
-/// - call [`VideoControl::layer`] to get a [`tile::layer::Handle`],
-/// - then call [`tile::layer::Handle::set_sbb`] to set it to the SBB you just drew
+/// - Use [`VideoControl::layer`] to get a [`tile::layer::Handle`],
+/// - Use [`tile::layer::Handle::set_sbb`] to set it to the SBB you just drew
 ///   your stuff to.
-/// - (make sure also to call [`VideoControl::enable_layer`]) with the layer
+/// - (make sure to use [`VideoControl::enable_layer`]) with the layer
 ///   you want to display)
 pub struct VideoControl<M: Mode> {
     _t: PhantomData<fn() -> M>,
-    _ref: (),
+    inner: (),
 }
 
 /// General `VideoControl` methods available in all [`Mode`]s.
@@ -60,7 +71,7 @@ impl<M: Mode> VideoControl<M> {
     const fn new() -> Self {
         Self {
             _t: PhantomData,
-            _ref: (),
+            inner: (),
         }
     }
 
@@ -77,6 +88,7 @@ impl<M: Mode> VideoControl<M> {
     /// Failure to uphold this safety comment shouldn't result
     /// in undefined behavior, but will violate the basic Rust
     /// reference model.
+    #[must_use]
     pub const unsafe fn init() -> VideoControl<mode::Text> {
         VideoControl::<mode::Text>::new()
     }
@@ -87,6 +99,7 @@ impl<M: Mode> VideoControl<M> {
     ///
     /// WARNING: this doesn't clean up video memory, so you'll probably
     /// see artifacts until you clear it up.
+    #[must_use]
     pub fn enter_mode<N: Mode>(self) -> VideoControl<N> {
         let old_settings = DISPCNT.read();
         DISPCNT.write(old_settings.with_display_mode(N::RAW_REPR));
@@ -102,14 +115,29 @@ impl<M: Mode> VideoControl<M> {
         DISPCNT.write(DisplayControl::new().with_display_mode(M::RAW_REPR));
     }
 
+    pub fn set_object_tile_mapping(&mut self, mapping: object::TileMapping) {
+        let old_settings = DISPCNT.read();
+        DISPCNT.write(old_settings.with_obj_vram_1d(mapping.is_1d()));
+    }
+
     pub fn disable_layer(&mut self, layer: Layer<M>) {
         let old_settings = DISPCNT.read();
         DISPCNT.write(layer.set_display(false, old_settings));
     }
 
     /// Internal function to erase the type parameter.
-    fn erased<'a>(&'a mut self) -> &'a mut () {
-        &mut self._ref
+    fn erased(&mut self) -> &mut () {
+        &mut self.inner
+    }
+
+    /// Obtain a [`object::Handle`] to manage objects.
+    pub fn object<'a>(&'a mut self, slot: &object::Slot) -> object::Handle<'a> {
+        object::Handle::new(self, slot)
+    }
+    // TODO: special method for palette::Bank type
+    /// Load a palette to the object palette memory.
+    pub fn load_object_palette(&mut self, offset: usize, palette: &[Color]) {
+        OBJ_PALRAM.write_slice_at_offset(offset, palette);
     }
 }
 macro_rules! layer_const {
@@ -120,13 +148,18 @@ macro_rules! layer_const {
         };)*
     }
 }
+/// Identify a global-level layer, eg. in [`VideoControl::enable_layer`].
+///
+/// This struct is only used for enabling/disabling layers.
+/// See [`tile::layer::Slot`] and methods accepting `Slot` for more controls.
+#[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Layer<M: Mode> {
     value: u16,
     _t: PhantomData<fn() -> M>,
 }
 impl<M: Mode> Layer<M> {
-    fn set_display(&self, bit: bool, settings: DisplayControl) -> DisplayControl {
+    const fn set_display(self, bit: bool, settings: DisplayControl) -> DisplayControl {
         match self.value {
             0 => settings.with_display_bg0(bit),
             1 => settings.with_display_bg1(bit),
@@ -157,5 +190,29 @@ impl Layer<mode::Affine> {
     layer_const! {
         _2 => 2;
         _3 => 3;
+    }
+}
+
+/// Priority, lower is more in front.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u16)]
+pub enum Priority {
+    _0 = 0,
+    _1 = 1,
+    _2 = 2,
+    _3 = 3,
+}
+impl Priority {
+    /// Construct a priority from dynamic value without bound checks.
+    ///
+    /// Favor using the enum variants if the priority is known at compile time.
+    ///
+    /// # SAFETY
+    ///
+    /// `priority` must be 0, 1, 2 or 3.
+    pub(super) const unsafe fn new_unchecked(priority: u16) -> Self {
+        // SAFETY: Priority is repr(u16), and less than 4 as upheld by
+        // function's SAFETY section.
+        mem::transmute(priority)
     }
 }

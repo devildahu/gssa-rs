@@ -27,7 +27,7 @@ pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
 const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
 const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
 const PRESS_START: &str = "Press A";
-const DESCR_WIDTH: usize = 21;
+const DESCR_WIDTH: u16 = 21;
 
 const PRESS_START_BLINK_RATE: usize = 1 << 6;
 

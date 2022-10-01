@@ -27,4 +27,6 @@ pub mod rw {
     pub type VolBlock<T, const C: usize> = super::VolBlock<T, Safe, Safe, C>;
     /// Shortcut for [`crate::VolMatrix<T, Safe, Safe, W, H>`].
     pub type VolMatrix<T, const W: usize, const H: usize> = super::VolMatrix<T, Safe, Safe, W, H>;
+    /// Shortcut for [`voladdress::VolSeries<T, Safe, Safe, C, S>`].
+    pub type VolSeries<T, const C: usize, const S: usize> = super::VolSeries<T, Safe, Safe, C, S>;
 }

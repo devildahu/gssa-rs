@@ -39,12 +39,14 @@ pub struct Palette {
 }
 
 impl Palette {
+    #[must_use]
     pub const fn new(colors: &'static [Color], cycles: &'static [Cycle]) -> Self {
         Self {
             data: palette::Dynamic::new(colors),
             cycles,
         }
     }
+    #[must_use]
     pub const fn get(&self) -> &[Color] {
         self.data.get()
     }
@@ -63,8 +65,8 @@ pub struct Image {
     /// The **tileset**'s width.
     pub tileset_width: u16,
     pub offset: u16,
-    pub width: usize,
-    pub height: usize,
+    pub width: u16,
+    pub height: u16,
 }
 impl tile::Drawable for Image {
     fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
@@ -79,11 +81,7 @@ impl tile::Drawable for Image {
             for x in 0..width as u16 {
                 let sprite_pos = offset + tileset_width * y + x;
                 let tile = Tile::new(sprite_pos);
-                let offset = Pos {
-                    x: x as usize,
-                    y: y as usize,
-                };
-                f(tile, offset)
+                f(tile, Pos { x, y });
             }
         }
     }
@@ -109,6 +107,7 @@ pub struct Cycle {
     pub frames_per_step: usize,
 }
 impl Cycle {
+    #[must_use]
     pub const fn new(range: Range<usize>, frames_per_step: usize) -> Self {
         Self {
             range,

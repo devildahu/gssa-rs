@@ -22,11 +22,11 @@ pub struct Slot(usize);
 impl Slot {
     // TODO: handle different screen sizes based on tile mode
     /// Handle for a given sbb and screen size.
-    pub(super) const fn handle<M: TileMode>(
+    pub(super) const fn handle<'a, M: TileMode>(
         self,
-        size: map::TextSize,
-        ctrl: &mut VideoControl<M>,
-    ) -> Handle<M> {
+        size: &map::TextSize,
+        ctrl: &'a mut VideoControl<M>,
+    ) -> Handle<'a, M> {
         Handle {
             _ctrl: ctrl,
             region: size.region(),
@@ -34,16 +34,22 @@ impl Slot {
         }
     }
     /// Return value.
-    pub(super) const fn get(&self) -> u16 {
+    ///
+    /// By definition, the return value is smaller than `Self::MAX_BLOCKS`.
+    #[allow(clippy::cast_possible_truncation)]
+    pub(super) const fn get(self) -> u16 {
         self.0 as u16
     }
+
     /// How many Sbb slot there is.
     pub const MAX_BLOCKS: usize = super::SBB_COUNT;
+
     /// The sbb slot of index `inner`.
     ///
     /// # Panics
     ///
-    /// When `inner >= Self::MAX_BLOCKS`
+    /// (const time) When `inner >= Self::MAX_BLOCKS`
+    #[must_use]
     pub const fn new(inner: usize) -> Self {
         assert!(inner < Self::MAX_BLOCKS);
         Self(inner)
@@ -114,7 +120,8 @@ impl<'a, M: TileMode> Handle<'a, M> {
     pub fn set_tile(&mut self, tile: Tile, pos: map::Pos) {
         // TODO: very poor perf, probably can make Pos const generic
         // over maximum sizes, so that access is compile-time checked.
-        let to_set = self.sbb.index(pos.x + pos.y * self.region.width);
+        let voladdress_index = pos.x + pos.y * self.region.width;
+        let to_set = self.sbb.index(voladdress_index as usize);
         to_set.write(tile.get());
     }
     pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {

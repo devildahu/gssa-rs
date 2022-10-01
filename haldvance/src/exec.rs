@@ -9,7 +9,7 @@ use gba::mmio_addresses::VCOUNT;
 
 use crate::{
     input::{Input, KEYINPUT},
-    video::{mode, VideoControl},
+    video::{mode, object, VideoControl},
 };
 
 enum ControlModes {
@@ -34,12 +34,15 @@ fn spin_until_vdraw() {
     while VCOUNT.read() >= 160 {}
 }
 
-#[derive(Clone, Copy, ConstDefault)]
+/// Global console state.
+#[derive(ConstDefault)]
 pub struct ConsoleState {
     /// The frame count.
     pub frame: usize,
     /// The button state
     pub input: Input,
+    /// The object allocation state.
+    pub object_allocator: object::Allocator,
 }
 impl ConsoleState {
     /// Run `f` once every `frequency` frame, with given `offset`.
@@ -61,21 +64,21 @@ impl ConsoleState {
 /// be handled (if only to enter a different mode).
 pub trait GameState {
     /// The game logic, updates the state based on input for current frame.
-    fn logic(&mut self, console: &ConsoleState);
+    fn logic(&mut self, console: &mut ConsoleState);
 
     /// Draw stuff in [`mode::Text`], text mode is the initial video mode.
     ///
     /// You must handle text mode, if only to setup a different mode you'll
     /// use for the rest of your game.
-    fn text_draw(&self, console: &ConsoleState, video: &mut VideoControl<mode::Text>);
+    fn text_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Text>);
 
     /// Draw stuff in [`mode::Mixed`], by default does nothing.
-    fn mixed_draw(&self, console: &ConsoleState, video: &mut VideoControl<mode::Mixed>) {
+    fn mixed_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Mixed>) {
         let _ = (video, console);
     }
 
     /// Draw stuff in [`mode::Affine`], by default does nothing.
-    fn affine_draw(&self, console: &ConsoleState, video: &mut VideoControl<mode::Affine>) {
+    fn affine_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Affine>) {
         let _ = (video, console);
     }
 }
@@ -97,16 +100,16 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     let mut video_control = ControlModes::Text(unsafe { VideoControl::<mode::Text>::init() });
     let mut console = ConsoleState::DEFAULT;
     loop {
-        console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read().into());
+        console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read());
 
-        state.logic(&console);
+        state.logic(&mut console);
         console.frame = console.frame.wrapping_add(1);
 
         spin_until_vblank();
         match &mut video_control {
-            ControlModes::Text(video_control) => state.text_draw(&console, video_control),
-            ControlModes::Mixed(video_control) => state.mixed_draw(&console, video_control),
-            ControlModes::Affine(video_control) => state.affine_draw(&console, video_control),
+            ControlModes::Text(video_control) => state.text_draw(&mut console, video_control),
+            ControlModes::Mixed(video_control) => state.mixed_draw(&mut console, video_control),
+            ControlModes::Affine(video_control) => state.affine_draw(&mut console, video_control),
         }
         spin_until_vdraw();
     }

@@ -1,3 +1,4 @@
+//! Deal with GBA palettes.
 use gba::mmio_types::Color;
 
 #[cfg(doc)]
@@ -11,15 +12,20 @@ macro_rules! impl_palette {
         ] ,)* $(,)?
     ) => {
         $(
+            impl $(<$($generic)*>)? Palette for $name $(<$($generic_arg),*>)? {
+                const TYPE: Type = Type::$name;
+            }
             impl $(<$($generic)*>)? $name $(<$($generic_arg),*>)? {
                 /// INTERNAL USE ONLY.
                 ///
                 /// This should only be called inside of the [`palette!`] macro.
                 #[doc(hidden)]
+                #[must_use]
                 pub const fn new(data: &'static [Color $(; $size)?]) -> Self {
                     Self { data }
                 }
 
+                #[must_use]
                 pub const fn get(&self) -> &[Color] {
                     self.data
                 }
@@ -28,7 +34,20 @@ macro_rules! impl_palette {
     }
 }
 
+/// The kind of palette.
+#[derive(Clone, Copy)]
+pub enum Type {
+    Bank,
+    Dynamic,
+    Full,
+}
+
+pub trait Palette {
+    const TYPE: Type;
+}
+
 /// A palette [`Bank`] handle to refer to individual palette banks in [`Tile`].
+#[derive(Clone, Copy)]
 pub struct BankHandle {
     pub(super) id: u16,
 }
@@ -57,15 +76,4 @@ impl_palette! {
     [impl Dynamic],
     [impl Bank, size: 16],
     [impl Full, size: 256],
-}
-
-/// Define a [`palette`](self).
-///
-/// Directly pass the file name, prefixes the path to the resources
-/// directory.
-#[macro_export]
-macro_rules! palette {
-    ($file:literal) => {
-        Palette::new(include_bytes!(concat!("../resources/", $file)))
-    };
 }

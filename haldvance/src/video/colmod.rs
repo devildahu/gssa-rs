@@ -1,7 +1,14 @@
+//! Deal with GBA color modes, see [`palette`].
+//!
+//! The color mode depends on the [`palette`] specified by the object or
+//! layer in question. You can manipulate color mode with the
+//! [`object::Handle::set_palette_mode`] and [`layer::Handle::set_color_mode`]
+//! methods respectively.
 #[cfg(doc)]
 use crate::video::{
     mode::{Mixed, Text},
-    tile::sbb,
+    object, palette,
+    tile::{layer, sbb},
     Tile,
 };
 

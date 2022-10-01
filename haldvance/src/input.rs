@@ -15,16 +15,18 @@ pub(crate) const KEYINPUT: VolAddress<Keys, Safe, ()> = unsafe { VolAddress::new
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Keys(u16);
 impl ConstDefault for Keys {
-    const DEFAULT: Self = Keys(0xFFFF);
+    const DEFAULT: Self = Self(0xFFFF);
 }
 impl Keys {
     /// Is **any** of the buttons of this [`KeyGroup`] pressed?
+    #[must_use]
     pub const fn any_pressed(self, keys: KeyGroup) -> bool {
         // NOTE: bit=1 means the button is released, while
         // bit=0 means it's pressed
         keys.0 & self.0 != keys.0
     }
     /// Are **all** of the buttons of this [`KeyGroup`] pressed?
+    #[must_use]
     pub const fn all_pressed(self, keys: KeyGroup) -> bool {
         // NOTE: bit=1 means the button is released, while
         // bit=0 means it's pressed
@@ -52,6 +54,7 @@ impl Key {
     pub const B: Self = Self(1 << 1);
     pub const Select: Self = Self(1 << 2);
     pub const Start: Self = Self(1 << 3);
+    #[must_use]
     pub const fn Dpad(dir: Dir) -> Self {
         Self((dir as u16) << 4)
     }
@@ -82,7 +85,7 @@ impl ops::BitOr<Self> for KeyGroup {
         Self(self.0 | rhs.0)
     }
 }
-impl ops::BitOr<Key> for Key {
+impl ops::BitOr<Self> for Key {
     type Output = KeyGroup;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -103,7 +106,7 @@ impl From<Dir> for KeyGroup {
 }
 impl From<Key> for KeyGroup {
     fn from(key: Key) -> Self {
-        KeyGroup(key.0)
+        Self(key.0)
     }
 }
 
@@ -118,6 +121,7 @@ pub struct Input {
 }
 impl Input {
     // TODO: optimization
+    #[must_use]
     pub fn direction(self) -> Option<Dir> {
         match () {
             () if self.pressed(Dir::Down) => Some(Dir::Down),
@@ -128,6 +132,7 @@ impl Input {
         }
     }
     // TODO: optimization
+    #[must_use]
     pub const fn just_direction(self) -> Option<Dir> {
         match () {
             () if self.just_pressed(Key::Dpad(Dir::Down)) => Some(Dir::Down),
@@ -150,12 +155,14 @@ impl Input {
     // I was expecting that this would fold into a single comparison instruction,
     // but it seems not.
     // TODO: Key => impl Into<KeyGroup>
+    #[must_use]
     pub const fn just_pressed(self, key: Key) -> bool {
         let key = KeyGroup(key.0);
         let current = self.current.any_pressed(key);
         let previous = self.previous.any_pressed(key);
         current && !previous
     }
+    #[must_use]
     pub const fn just_released(self, key: Key) -> bool {
         let key = KeyGroup(key.0);
         let current = self.current.any_pressed(key);

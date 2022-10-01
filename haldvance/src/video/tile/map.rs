@@ -31,21 +31,22 @@ pub enum TextSize {
 }
 impl TextSize {
     /// The tile count of a single layer for this `TextSize`.
+    #[must_use]
     pub const fn region(&self) -> Rect {
         match self {
-            TextSize::Base => Rect {
+            Self::Base => Rect {
                 width: 32,
                 height: 32,
             },
-            TextSize::Long => Rect {
+            Self::Long => Rect {
                 width: 64,
                 height: 32,
             },
-            TextSize::Tall => Rect {
+            Self::Tall => Rect {
                 width: 32,
                 height: 64,
             },
-            TextSize::Large => Rect {
+            Self::Large => Rect {
                 width: 64,
                 height: 64,
             },
@@ -70,11 +71,12 @@ pub enum AffineSize {
 /// A rectangular region of the screen.
 #[derive(Clone, Copy)]
 pub struct Rect {
-    pub width: usize,
-    pub height: usize,
+    pub width: u16,
+    pub height: u16,
 }
 impl Rect {
     /// Whether provided `pos` is inside `Rect`.
+    #[must_use]
     pub const fn contains(&self, pos: Pos) -> bool {
         pos.x < self.width && pos.y < self.height
     }
@@ -83,30 +85,32 @@ impl Rect {
 /// A position in the map.
 #[derive(Copy, Clone, ConstDefault)]
 pub struct Pos {
-    pub x: usize,
-    pub y: usize,
+    pub x: u16,
+    pub y: u16,
 }
 impl Pos {
-    pub const fn x(value: usize) -> Self {
-        Pos { x: value, y: 0 }
+    #[must_use]
+    pub const fn x(value: u16) -> Self {
+        Self { x: value, y: 0 }
     }
-    pub const fn y(value: usize) -> Self {
-        Pos { x: 0, y: value }
+    #[must_use]
+    pub const fn y(value: u16) -> Self {
+        Self { x: 0, y: value }
     }
 }
-impl ops::Add<Pos> for Pos {
-    type Output = Pos;
-    fn add(self, other: Pos) -> Pos {
-        Pos {
+impl ops::Add<Self> for Pos {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
             x: self.x + other.x,
             y: self.y + other.y,
         }
     }
 }
-impl ops::Sub<Pos> for Pos {
-    type Output = Pos;
-    fn sub(self, other: Pos) -> Pos {
-        Pos {
+impl ops::Sub<Self> for Pos {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        Self {
             x: self.x - other.x,
             y: self.y - other.y,
         }

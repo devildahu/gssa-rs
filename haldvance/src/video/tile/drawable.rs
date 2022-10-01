@@ -68,18 +68,18 @@ impl<T: Drawable> Drawable for Windowed<T> {
 }
 
 /// Draws an empty line of length COLUMNS.
-pub struct ConstEmptyLine<const COLUMNS: usize>;
+pub struct ConstEmptyLine<const COLUMNS: u16>;
 
 /// Draws an empty line of given length.
-pub struct EmptyLine(pub usize);
+pub struct EmptyLine(pub u16);
 
 /// An empty rectangular region of the screen.
 pub struct EmptyRect(pub Rect);
 
 /// Compile-time empty rectangular region of the screen.
-pub struct ConstEmptyRect<const WIDTH: usize, const HEIGHT: usize>;
+pub struct ConstEmptyRect<const WIDTH: u16, const HEIGHT: u16>;
 
-impl<const C: usize> Drawable for ConstEmptyLine<C> {
+impl<const C: u16> Drawable for ConstEmptyLine<C> {
     fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
         (0..C).for_each(|x| f(Tile::EMPTY, Pos { x, y: 0 }));
     }
@@ -89,7 +89,7 @@ impl Drawable for EmptyLine {
         (0..self.0).for_each(|x| f(Tile::EMPTY, Pos { x, y: 0 }));
     }
 }
-impl<const W: usize, const H: usize> Drawable for ConstEmptyRect<W, H> {
+impl<const W: u16, const H: u16> Drawable for ConstEmptyRect<W, H> {
     fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
         (0..H).for_each(|y| (0..W).for_each(|x| f(Tile::EMPTY, Pos { x, y })));
     }

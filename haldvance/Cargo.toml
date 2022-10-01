@@ -8,8 +8,10 @@ license = "Zlib OR Apache-2.0"
 keywords = ["gba"]
 
 [features]
-default = []
+default = ["sane_asserts"]
 log = []
+# Asserts that may indicate that the code is faulty, but doesn't result in UB.
+sane_asserts = []
 
 [dependencies]
 gba = { version = "0.5.3", git = "https://github.com/nicopap/gba.git", branch = "text-bg-entry" }

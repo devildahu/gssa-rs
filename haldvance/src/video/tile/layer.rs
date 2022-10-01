@@ -1,40 +1,15 @@
+//! Deal with tilemap-based backgrounds, or "layers."
 use core::marker::PhantomData;
-use core::mem;
 
 use gba::mmio_addresses::{BG0CNT, BG1CNT, BG2CNT, BG3CNT};
 use gba::mmio_types::BackgroundControl;
 use volmatrix::rw::VolAddress;
 
-use crate::video::{mode::TileMode, tile::sbb, ColorMode, Mode, VideoControl};
+use crate::video::{mode::TileMode, tile::sbb, ColorMode, Mode, Priority, VideoControl};
 
 #[cfg(doc)]
 use crate::video::mode::{Mixed, Text};
 
-/// Background layer priority, lower is more in front.
-///
-/// Used by [`Handle`].
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u16)]
-pub enum Priority {
-    _0 = 0,
-    _1 = 1,
-    _2 = 2,
-    _3 = 3,
-}
-impl Priority {
-    /// Construct a priority from dynamic value without bound checks.
-    ///
-    /// Favor using the enum variants if the priority is known at compile time.
-    ///
-    /// # SAFETY
-    ///
-    /// `priority` must be 0, 1, 2 or 3.
-    pub(super) const unsafe fn new_unchecked(priority: u16) -> Self {
-        // SAFETY: Priority is repr(u16), and less than 4 as upheld by
-        // function's SAFETY section.
-        mem::transmute(priority)
-    }
-}
 /// Background layers accessible in [`Text`] [`Mode`].
 ///
 /// To manipulate the background, get a [`Handle`] from
@@ -71,6 +46,7 @@ pub enum MixedSlot {
     _1 = 1,
 }
 impl MixedSlot {
+    #[must_use]
     pub const fn into_pure_text(self) -> Slot {
         match self {
             Self::_0 => Slot::_0,
@@ -103,12 +79,13 @@ impl<'a, M: TileMode> Handle<'a, M> {
     pub fn set_priority(&mut self, priority: Priority) -> Priority {
         let old_priority = unsafe {
             // SAFETY: return value of `bg_priority` is always `ret & 0b11`.
-            Priority::new_unchecked(self.value.priority() as u16)
+            Priority::new_unchecked(u16::from(self.value.priority()))
         };
         self.value = self.value.with_priority(priority as u8);
         old_priority
     }
     /// Set SBB of this layer, returning the previous SBB.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn set_sbb(&mut self, sbb: sbb::Slot) -> sbb::Slot {
         let old_sbb = sbb::Slot::new(self.value.screen_base_block() as usize);
         self.value = self.value.with_screen_base_block(sbb.get() as u8);
@@ -133,6 +110,6 @@ impl<'a, M: TileMode> Handle<'a, M> {
 impl<'a, M: TileMode> Drop for Handle<'a, M> {
     /// Commit all changes to video memory.
     fn drop(&mut self) {
-        self.commit()
+        self.commit();
     }
 }
