@@ -17,7 +17,7 @@ $(TARGET)/thumbv4t-none-eabi/release/gssa-rust: FORCE
 	cargo build --release $(build_flags)
 
 build/gssa-rust.gba: $(TARGET)/thumbv4t-none-eabi/release/gssa-rust
-	mkdir build
+	mkdir build || true
 	arm-none-eabi-objcopy -O binary \
 		$(TARGET)/thumbv4t-none-eabi/release/gssa-rust \
 		build/gssa-rust.gba
