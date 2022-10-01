@@ -146,9 +146,7 @@ impl Mainmenu {
                 }
                 Submenu::Main(MainEntry::ShipSelect) => {
                     self.just_new_screen = true;
-                    self.menu = Submenu::ShipSelect {
-                        highlight: self.selected_ship,
-                    };
+                    self.menu = Submenu::ShipSelect { highlight: self.selected_ship };
                     let cursor_pos = self.data.ship_menu.of(self.selected_ship) - Pos::x(1);
                     self.cursor.update(cursor_pos, console)
                 }
@@ -202,10 +200,7 @@ struct ShipMenuPos {
 impl ShipMenuPos {
     fn draw_selected(self, selected: Ship, ctrl: &mut VideoControl<mode::Text>) {
         let mut sbb = ctrl.basic_sbb(SHIP_SELECT_SBB);
-        let win = |inner, width, height| Windowed {
-            inner,
-            window: Rect { width, height },
-        };
+        let win = |inner, width, height| Windowed { inner, window: Rect { width, height } };
         sbb.clear_tiles(self.image, &selected.image());
         sbb.clear_tiles(self.name, &win(selected.name(), 7, 1));
         sbb.clear_tiles(self.descr, &win(selected.description(), DESCR_WIDTH, 3));
@@ -250,15 +245,7 @@ impl MainMenuData {
 pub(crate) fn init_menu(data: &mut MainMenuData, ctrl: &mut VideoControl<mode::Text>) {
     let MainMenuData {
         menu_select: MenuSelectPos { start_game, ships },
-        ship_menu:
-            ShipMenuPos {
-                paladin,
-                spear,
-                blank,
-                image,
-                descr,
-                name,
-            },
+        ship_menu: ShipMenuPos { paladin, spear, blank, image, descr, name },
         press_start,
     } = data;
 

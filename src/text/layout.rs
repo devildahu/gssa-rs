@@ -39,10 +39,7 @@ impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
         *to_change += value;
     }
     pub(crate) const fn pos(&self) -> Pos {
-        Pos {
-            x: *self.x,
-            y: *self.y,
-        }
+        Pos { x: *self.x, y: *self.y }
     }
     pub(crate) fn vertical(&mut self, f: impl FnOnce(&mut Self)) {
         let old_axis = self.axis;

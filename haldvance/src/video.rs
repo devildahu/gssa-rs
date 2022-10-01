@@ -69,10 +69,7 @@ pub struct VideoControl<M: Mode> {
 /// General `VideoControl` methods available in all [`Mode`]s.
 impl<M: Mode> VideoControl<M> {
     const fn new() -> Self {
-        Self {
-            _t: PhantomData,
-            inner: (),
-        }
+        Self { _t: PhantomData, inner: () }
     }
 
     /// Create an instance of `VideoControl`.

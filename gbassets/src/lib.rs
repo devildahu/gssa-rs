@@ -70,12 +70,7 @@ pub struct Image {
 }
 impl tile::Drawable for Image {
     fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
-        let Self {
-            height,
-            offset,
-            tileset_width,
-            width,
-        } = *self;
+        let Self { height, offset, tileset_width, width } = *self;
 
         for y in 0..height as u16 {
             for x in 0..width as u16 {
@@ -109,9 +104,6 @@ pub struct Cycle {
 impl Cycle {
     #[must_use]
     pub const fn new(range: Range<usize>, frames_per_step: usize) -> Self {
-        Self {
-            range,
-            frames_per_step,
-        }
+        Self { range, frames_per_step }
     }
 }

@@ -15,10 +15,8 @@ macro_rules! include_const_aligned {
             _align: [Align; 0],
             data: T,
         }
-        const DATA: &Aligned<$align_to, [u8]> = &Aligned {
-            _align: [],
-            data: *include_bytes!($path),
-        };
+        const DATA: &Aligned<$align_to, [u8]> =
+            &Aligned { _align: [], data: *include_bytes!($path) };
         &DATA.data
     }};
 }

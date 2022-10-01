@@ -69,9 +69,7 @@ pub fn main() -> ! {
     }
     let mut mainmenu = Mainmenu::DEFAULT;
     game::mainmenu::init_menu(&mut mainmenu.data, &mut video_control);
-    let state = State {
-        screen: Screen::Mainmenu(mainmenu),
-    };
+    let state = State { screen: Screen::Mainmenu(mainmenu) };
     // TODO move logic from top to here
     unsafe { full_game(state) };
 }

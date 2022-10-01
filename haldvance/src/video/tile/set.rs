@@ -21,10 +21,7 @@ impl<M: ColorMode> Tileset<M> {
     #[doc(hidden)]
     #[must_use]
     pub const fn new(data: &'static [u16]) -> Self {
-        Self {
-            data,
-            _m: PhantomData,
-        }
+        Self { data, _m: PhantomData }
     }
     pub(crate) const fn get(&self) -> &'static [u16] {
         self.data

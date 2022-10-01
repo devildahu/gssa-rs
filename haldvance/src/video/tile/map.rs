@@ -34,22 +34,10 @@ impl TextSize {
     #[must_use]
     pub const fn region(&self) -> Rect {
         match self {
-            Self::Base => Rect {
-                width: 32,
-                height: 32,
-            },
-            Self::Long => Rect {
-                width: 64,
-                height: 32,
-            },
-            Self::Tall => Rect {
-                width: 32,
-                height: 64,
-            },
-            Self::Large => Rect {
-                width: 64,
-                height: 64,
-            },
+            Self::Base => Rect { width: 32, height: 32 },
+            Self::Long => Rect { width: 64, height: 32 },
+            Self::Tall => Rect { width: 32, height: 64 },
+            Self::Large => Rect { width: 64, height: 64 },
         }
     }
 }
@@ -101,18 +89,12 @@ impl Pos {
 impl ops::Add<Self> for Pos {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
+        Self { x: self.x + other.x, y: self.y + other.y }
     }
 }
 impl ops::Sub<Self> for Pos {
     type Output = Self;
     fn sub(self, other: Self) -> Self {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
+        Self { x: self.x - other.x, y: self.y - other.y }
     }
 }

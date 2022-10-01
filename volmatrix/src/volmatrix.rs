@@ -59,9 +59,7 @@ impl<T, R, W, const WIDTH: usize, const HEIGHT: usize> VolMatrix<T, R, W, WIDTH,
     /// ```
     #[must_use]
     pub const unsafe fn new(address: usize) -> Self {
-        Self {
-            vol_address: VolAddress::new(address),
-        }
+        Self { vol_address: VolAddress::new(address) }
     }
     /// Get the [`VolAddress`] at specified matrix location, returns
     /// `None` if out of bound.
