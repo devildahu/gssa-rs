@@ -1,6 +1,18 @@
 //! Deal with GBA video modes, see [`Mode`].
 #[cfg(doc)]
-use crate::video::{colmod, ColorMode};
+use crate::video::{
+    colmod,
+    tile::{self, map, sbb},
+    ColorMode,
+};
+
+/// Enumerates video [`Mode`]s.
+#[repr(u16)]
+pub enum Type {
+    Text = 0,
+    Mixed = 1,
+    Affine = 2,
+}
 
 /// Video modes for use with [`super::VideoControl`].
 ///
@@ -35,19 +47,22 @@ use crate::video::{colmod, ColorMode};
 pub trait Mode: sealed::Mode {}
 
 /// Subset of [`Mode`]s that support tile-based access.
-pub trait TileMode: Mode {}
+pub trait Tile: Mode {}
 
 /// Text mode, tile+map based background mode supporting 4 distinct background layers,
 /// both [`colmod::Bit4`] and [`colmod::Bit8`] tile definition
 /// and sprite flipping.
 ///
+/// `Text` mode supports up to 1024 unique tiles per layer, also flipping individually
+/// each tile, see [`tile::Tile`] methods for details.
+///
 /// `Text` mode doesn't support rotation and scaling, this is strictly tile-based.
 /// See [`Mixed`] for an alternative with rotation and scaling.
 pub enum Text {}
 impl Mode for Text {}
-impl TileMode for Text {}
+impl Tile for Text {}
 impl sealed::Mode for Text {
-    const RAW_REPR: u16 = 0;
+    const TYPE: Type = Type::Text;
 }
 
 /// Mixed mode, tile+map based background mode controlled like [`Text`]
@@ -55,9 +70,9 @@ impl sealed::Mode for Text {
 /// and [`Affine`] for layer 2.
 pub enum Mixed {}
 impl Mode for Mixed {}
-impl TileMode for Mixed {}
+impl Tile for Mixed {}
 impl sealed::Mode for Mixed {
-    const RAW_REPR: u16 = 1;
+    const TYPE: Type = Type::Mixed;
 }
 
 // TODO: implement scaling and rotation
@@ -65,18 +80,31 @@ impl sealed::Mode for Mixed {
 ///
 /// Also often refered as "Affine" mode, or "Rotation/Scaling Modes".
 ///
+/// It allows arbitrary affine transformations on the layer. Such as the ones
+/// that would allow _Mario Kart Advance_ courses.
+///
 /// All layers in this mode support scaling and rotation,
 /// but this is at the cost of some flexibility, notably:
+///
 /// - Only 8 bit color sprites are supported
 /// - Only 2 layers are available
+/// - Only 256 unique tile per layer (vs 1024 in [`Text`] mode)
+/// - Can't individually flip tiles vertically/horizontally
 ///
 /// Affine mode supports larger tile maps than [`Text`] mode,
-/// this is how a game like _Mario Kart Advance_ would be implemented.
+/// (see [`map::TextSize`] and [`map::AffineSize`] for a discussion).
+/// Furthermore, the memory layout of a tile map in `Affine` mode is much
+/// simpler. They are byte per tile, and the map layout is one full row after
+/// another (instead of the map being split in N regions).
+///
+/// Beware that the vram memory bus is 2 bytes, meaning that you can't set
+/// tiles in `Affine` mode independently, see [`sbb::AffineHandle`] for the
+/// performance implications.
 pub enum Affine {}
 impl Mode for Affine {}
-impl TileMode for Affine {}
+impl Tile for Affine {}
 impl sealed::Mode for Affine {
-    const RAW_REPR: u16 = 2;
+    const TYPE: Type = Type::Affine;
 }
 
 /// traits to "seal" public traits in this module, to prevent
@@ -87,7 +115,7 @@ impl sealed::Mode for Affine {
 pub(super) mod sealed {
     /// Seal the [`super::Mode`] trait.
     pub trait Mode {
-        /// The `u16` representation of the display mode, one of 0,1,2,4,5
-        const RAW_REPR: u16;
+        /// The `Type` representation of the display mode, one of 0,1,2,4,5
+        const TYPE: super::Type;
     }
 }

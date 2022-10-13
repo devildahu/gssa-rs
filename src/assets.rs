@@ -1,6 +1,6 @@
 //! Embedded game asset definitions.
 
-use gbassets::{palette, Cycle, Image, Palette};
+use gbassets::{image, palette, Cycle, Image, Palette};
 use hal::tileset;
 use hal::video::{colmod, Tileset};
 
@@ -42,6 +42,8 @@ pub(crate) mod space {
         const LONG: Self = Self::new(2, 1);
         const SMALL: Self = Self::new(1, 1);
     }
+    /// The in-game menu tiles.
+    pub(crate) const ui: Tileset<colmod::Bit8> = tileset!("gamesetui_til.bin");
     /// The bullet tiles, includes player and enemy bullets.
     pub(crate) const bullets: Tileset<colmod::Bit8> = tileset!("bulls_til.bin");
     /// The space background tiles.
@@ -151,27 +153,19 @@ pub(crate) mod menu {
     pub(crate) mod player_ships {
         use super::*;
 
-        const fn ship_image(index: u16) -> Image {
-            let offset = title_card.offset + title_card.width as u16 + index * 4;
-            Image {
-                tileset_width: 32,
-                offset,
-                width: 3,
-                height: 3,
-            }
+        const fn ship_offset(index: u16) -> u16 {
+            title_card_offset + title_card_width + index * 4
         }
-        pub(crate) const blank: Image = ship_image(0);
-        pub(crate) const spear: Image = ship_image(1);
-        pub(crate) const paladin: Image = ship_image(2);
+        pub(crate) const blank: Image = image!(ship_offset(0), 3, 3, 32);
+        pub(crate) const spear: Image = image!(ship_offset(1), 3, 3, 32);
+        pub(crate) const paladin: Image = image!(ship_offset(2), 3, 3, 32);
     }
+
+    const title_card_offset: u16 = 96;
+    const title_card_width: u16 = 17;
 
     pub(crate) const set: Tileset<colmod::Bit8> = tileset!("menuset_til.bin");
     pub(crate) const palette: Palette = palette!("menuset_pal.bin");
     // TODO: all the main menu tileset individual images
-    pub(crate) const title_card: Image = Image {
-        tileset_width: 32,
-        offset: 96,
-        width: 17,
-        height: 9,
-    };
+    pub(crate) const title_card: Image = image!(title_card_offset, title_card_width, 9, 32);
 }

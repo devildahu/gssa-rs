@@ -1,9 +1,6 @@
 //! Manage text layout on screen.
 
-use hal::video::{
-    mode,
-    tile::{map::Pos, sbb, Drawable},
-};
+use hal::video::tile::{map::Pos, sbb, Drawable};
 
 #[doc(hidden)]
 #[derive(Copy, Clone)]
@@ -12,14 +9,14 @@ pub(crate) enum Axis {
     Y,
 }
 #[doc(hidden)]
-pub(crate) struct ToChange<'a, 'b, M: mode::TileMode> {
+pub(crate) struct ToChange<'a, 'b> {
     pub(crate) axis: Axis,
     pub(crate) x: &'a mut u16,
     pub(crate) y: &'a mut u16,
-    pub(crate) sbb: sbb::Handle<'b, M>,
+    pub(crate) sbb: sbb::TextHandle<'b>,
 }
 /// State of layouting
-impl<'a, 'b, M: mode::TileMode> ToChange<'a, 'b, M> {
+impl<'a, 'b> ToChange<'a, 'b> {
     pub(crate) const fn current_axis(&mut self) -> &mut u16 {
         match self.axis {
             Axis::X => self.x,
@@ -133,7 +130,7 @@ macro_rules! layout {
     };
     (@hint $to_change:ident image ($img:expr)) => {
         $to_change.draw(&$img);
-        $to_change.add_rect($img.width, $img.height)
+        $to_change.add_rect($img.width(), $img.height())
     };
     (@hint $to_change:ident select ($refer:expr, $text:expr)) => {
         $to_change.draw(&$text);

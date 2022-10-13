@@ -1,8 +1,9 @@
 //! Embedded game asset definitions.
 #![no_std]
 #![warn(clippy::pedantic, clippy::nursery)]
+#![feature(const_mut_refs)]
 
-use core::ops::Range;
+use core::{iter, ops::Range, slice};
 
 use haldvance::video::{
     palette,
@@ -56,42 +57,142 @@ impl Palette {
 // with regard to Color4bit and Color8bit.
 // TODO: probably requires distinguishing "dynamic" images from
 // fixed position images.
+// # Alternative implementations.
+//
+// I need to benchmark this, because Image might be perf-critical, but there is
+// a few alternative on how to define an image, and all have different performance
+// and ergonomic implications.
+//
+// ## Const everything
+//
+// ```
+// pub struct Image<
+//     const tileset_width: u16,
+//     const offset: u16,
+//     const width: u16,
+//     const height: u16,
+// >;
+// ```
+//
+// Since all images are known at compile, we _could_ just make all fields into
+// const type parameters. This requires implementing all APIs in term of and
+// might result in code bloat, as monomorphization creates an instance of every
+// methods on `Image` per instance. But it might not, as const
+// propagation might be smart enough to replace basically all logic with simple
+// `mov r10 #5` etc.
+//
+// ## A simple struct
+//
+// ```
+// pub struct Image {
+//     pub tileset_width: u16,
+//     pub offset: u16,
+//     pub width: u16,
+//     pub height: u16,
+// }
+// ```
+//
+// Unlike the `const` solution, we do not have a monomorphization per instance,
+// but this becomes relatively math heavy whenever we want to load an image,
+// There is the multiplication with the `Pos`, `tileset_width`, out-of-bound
+// checks etc. Obviously, this needs more fine-grained assembly inspection,
+// but I'm worried we are hitting something heavy.
+//
+// ## Precomputed tiles
+//
+// ```
+// pub struct Image {
+//     pub tiles: &'static [u8],
+//     pub width: u16,
+// }
+// ```
+//
+// But we can get rid of `offset`, `tileset_width`, `height` and move the
+// computation of individual tile index to compile-time, if instead
+// of storing them in. This `struct` is of size 10, previous was 8 (reference
+// to slice is 2×usize)
+//
 /// An image in a tileset.
 ///
 /// It can be drawn and stuff, while [`Tileset`] is the raw data to load in VRAM.
 ///
 /// [`Tileset`]: haldvance::video::Tileset
 pub struct Image {
-    /// The **tileset**'s width.
-    pub tileset_width: u16,
-    pub offset: u16,
+    // TODO: consider using u8 to avoid code bloat here.
+    pub tiles: &'static [u16],
     pub width: u16,
-    pub height: u16,
 }
 impl tile::Drawable for Image {
-    fn for_each_tile<F: FnMut(Tile, Pos)>(&self, mut f: F) {
-        let Self { height, offset, tileset_width, width } = *self;
+    type Iter = iter::Map<slice::Iter<'static, u16>, fn(&u16) -> Tile>;
 
-        for y in 0..height as u16 {
-            for x in 0..width as u16 {
-                let sprite_pos = offset + tileset_width * y + x;
-                let tile = Tile::new(sprite_pos);
-                f(tile, Pos { x, y });
+    fn for_each_line<F: FnMut(Pos, Self::Iter)>(&self, mut f: F) {
+        let Self { tiles, width } = *self;
+        let to_tile = |tile: &u16| Tile::new(*tile);
+        tiles
+            .chunks_exact(width as usize)
+            .zip(0_u16..)
+            .for_each(|(line, y)| f(Pos::y(y), line.iter().map(to_tile)));
+    }
+}
+impl Image {
+    /// Height of the image.
+    #[must_use]
+    pub const fn height(&self) -> u16 {
+        self.tiles.len() as u16 / self.width
+    }
+    /// Width of the image.
+    #[must_use]
+    pub const fn width(&self) -> u16 {
+        self.width
+    }
+    /// Set values of a slice to a tilemap image, for use in the [`image!`]
+    /// macro in combination with the hidden constructor of `Image`.
+    pub const fn set_tiles(offset: u16, image_width: u16, tileset_width: u16, tiles: &mut [u16]) {
+        let mut x = 0;
+        let mut y = 0;
+        let mut i = 0;
+        loop {
+            let oob_slice = i >= tiles.len();
+            let oob_image = y >= image_width;
+            if oob_image || oob_slice {
+                return;
+            }
+            tiles[i] = offset + y * tileset_width + x;
+            i += 1;
+            x += 1;
+            if x >= image_width {
+                y += 1;
+                x = 0;
             }
         }
     }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn new(tiles: &'static [u16], width: u16) -> Self {
+        Self { tiles, width }
+    }
 }
 /// Define an [`Image`].
+///
+/// # Syntax
+///
+/// ```text
+/// image!($offset, $image_width, $image_height, $tileset_width $(,)?)
+/// ```
 ///
 /// An [`Image`] is not the raw bytes of sprite, it is the offset
 /// and position in the tile buffer of a specific image.
 #[macro_export]
 macro_rules! image {
-    ($file:literal) => {
-        Image {
-            data: include_bytes!(concat!("../resources/", $file)),
-        }
-    };
+    ($offset:expr, $image_width:expr, $image_height:expr, $tileset_width:expr $(,)?) => {{
+        const slice: &'static [u16] = &{
+            let mut tiles = [0; ($image_width as usize) * ($image_height as usize)];
+            $crate::Image::set_tiles($offset, $image_width, $tileset_width, &mut tiles);
+            tiles
+        };
+        $crate::Image::new(slice, $image_width)
+    }};
 }
 
 /// A palette cycle.

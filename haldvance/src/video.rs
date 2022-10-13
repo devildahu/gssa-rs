@@ -30,6 +30,7 @@ pub use colmod::ColorMode;
 pub use mode::Mode;
 pub use tile::set::Tileset;
 pub use tile::Tile;
+
 // pub use tile::map::Tilemap;
 
 /// Controls video memory in text mode.
@@ -99,7 +100,7 @@ impl<M: Mode> VideoControl<M> {
     #[must_use]
     pub fn enter_mode<N: Mode>(self) -> VideoControl<N> {
         let old_settings = DISPCNT.read();
-        DISPCNT.write(old_settings.with_display_mode(N::RAW_REPR));
+        DISPCNT.write(old_settings.with_display_mode(N::TYPE as u16));
         VideoControl::new()
     }
 
@@ -108,8 +109,13 @@ impl<M: Mode> VideoControl<M> {
         DISPCNT.write(layer.set_display(true, old_settings));
     }
 
+    pub fn disable_layer(&mut self, layer: Layer<M>) {
+        let old_settings = DISPCNT.read();
+        DISPCNT.write(layer.set_display(false, old_settings));
+    }
+
     pub fn reset_display_control(&mut self) {
-        DISPCNT.write(DisplayControl::new().with_display_mode(M::RAW_REPR));
+        DISPCNT.write(DisplayControl::new().with_display_mode(M::TYPE as u16));
     }
 
     pub fn set_object_tile_mapping(&mut self, mapping: object::TileMapping) {
@@ -117,13 +123,18 @@ impl<M: Mode> VideoControl<M> {
         DISPCNT.write(old_settings.with_obj_vram_1d(mapping.is_1d()));
     }
 
-    pub fn disable_layer(&mut self, layer: Layer<M>) {
+    pub fn enable_objects(&mut self) {
         let old_settings = DISPCNT.read();
-        DISPCNT.write(layer.set_display(false, old_settings));
+        DISPCNT.write(old_settings.with_display_obj(true));
+    }
+
+    pub fn disable_objects(&mut self) {
+        let old_settings = DISPCNT.read();
+        DISPCNT.write(old_settings.with_display_obj(false));
     }
 
     /// Internal function to erase the type parameter.
-    fn erased(&mut self) -> &mut () {
+    const fn erased(&mut self) -> &mut () {
         &mut self.inner
     }
 

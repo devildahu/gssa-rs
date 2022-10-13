@@ -18,7 +18,8 @@ use crate::video::{
 ///
 /// For [`Text`] [`Mode`] layers, larger (ie: non-`Base`) tile map sizes will
 /// split the overall tilemap into multiple SBBs.
-#[repr(u16)]
+#[derive(Clone, Copy)]
+#[repr(u8)]
 pub enum TextSize {
     /// 32×32 tiles, or 256×256 pixels
     Base = 0,
@@ -40,11 +41,20 @@ impl TextSize {
             Self::Large => Rect { width: 64, height: 64 },
         }
     }
+    #[must_use]
+    pub const fn width(self) -> u16 {
+        self.region().width
+    }
+    #[must_use]
+    pub const fn height(self) -> u16 {
+        self.region().height
+    }
 }
 /// The tile map (or [SBB](sbb::Handle)) size for [`Mixed`] and [`Affine`] [`Mode`]s.
 ///
 /// GBATEK calls this "Screen Size."
-#[repr(u16)]
+#[derive(Clone, Copy)]
+#[repr(u8)]
 pub enum AffineSize {
     /// 16×16 tiles, or 128×128 pixels
     Base = 0,
@@ -54,6 +64,26 @@ pub enum AffineSize {
     Quad = 2,
     /// 128×128 tiles, or 1024×1024 pixels
     Octo = 3,
+}
+impl AffineSize {
+    /// The tile count of a single layer for this `TextSize`.
+    #[must_use]
+    pub const fn region(self) -> Rect {
+        match self {
+            Self::Base => Rect { width: 16, height: 16 },
+            Self::Quad => Rect { width: 64, height: 64 },
+            Self::Octo => Rect { width: 128, height: 128 },
+            Self::Double => Rect { width: 32, height: 32 },
+        }
+    }
+    #[must_use]
+    pub const fn width(self) -> u16 {
+        self.region().width
+    }
+    #[must_use]
+    pub const fn height(self) -> u16 {
+        self.region().height
+    }
 }
 
 /// A rectangular region of the screen.

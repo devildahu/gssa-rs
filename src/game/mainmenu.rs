@@ -1,31 +1,40 @@
 //! Main menu handling.
 mod cycle;
 
+use core::mem;
+
 use const_default::ConstDefault;
 
 use gbassets::Image;
 use hal::{
-    exec::ConsoleState,
+    exec::{ConsoleState, EnterMode},
     input::{Dir, Key},
     video::{
-        mode,
+        colmod, mode, object,
         tile::{
+            cbb,
             drawable::Windowed,
             layer,
-            map::{Pos, Rect},
+            map::{AffineSize, Pos, Rect},
             sbb,
         },
-        VideoControl,
+        Layer, Priority, VideoControl,
     },
 };
 
-use crate::{assets, game::cursor::Cursor, layout};
+use crate::{
+    assets,
+    game::{background, cursor::Cursor},
+    layout,
+};
 
 use super::blink::Blink;
 
-pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
+const STAR_SBB: sbb::Slot = sbb::Slot::_20;
 const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
 const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
+const INGAME_MENU_SBB: sbb::Slot = sbb::Slot::_22;
+pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
 const PRESS_START: &str = "Press A";
 const DESCR_WIDTH: u16 = 21;
 
@@ -40,22 +49,22 @@ crate::cycling_enum! {
     }
 }
 impl Ship {
-    const fn image(&self) -> Image {
+    const fn image(self) -> Image {
         use assets::menu::player_ships;
         match self {
-            Ship::Blank => player_ships::blank,
-            Ship::Spear => player_ships::spear,
-            Ship::Paladin => player_ships::paladin,
+            Self::Blank => player_ships::blank,
+            Self::Spear => player_ships::spear,
+            Self::Paladin => player_ships::paladin,
         }
     }
-    const fn name(&self) -> &'static str {
+    const fn name(self) -> &'static str {
         match self {
-            Ship::Blank => "Blank",
-            Ship::Spear => "Spear",
-            Ship::Paladin => "Paladin",
+            Self::Blank => "Blank",
+            Self::Spear => "Spear",
+            Self::Paladin => "Paladin",
         }
     }
-    const fn description(&self) -> &'static str {
+    const fn description(self) -> &'static str {
         match self {
             Self::Blank => "Good all around. Has\nthe power to banish\nbullets in a blink.",
             Self::Spear => "A very powerfull ship\nfavors offense at the\nexpense of defense.",
@@ -133,7 +142,7 @@ impl Mainmenu {
         }
     }
 
-    pub(crate) fn logic(&mut self, console: &ConsoleState) {
+    pub(crate) fn logic(&mut self, console: &mut ConsoleState) {
         self.just_new_screen = false;
         self.cursor.clear_previous();
         if console.input.just_pressed(Key::A) {
@@ -142,16 +151,42 @@ impl Mainmenu {
                     self.just_new_screen = true;
                     self.menu = Submenu::Main(MainEntry::Start);
                     let cursor_pos = self.data.menu_select.of(MainEntry::Start) - Pos::x(2);
-                    self.cursor.update(cursor_pos, console)
+                    self.cursor.update(cursor_pos, console);
                 }
                 Submenu::Main(MainEntry::ShipSelect) => {
                     self.just_new_screen = true;
                     self.menu = Submenu::ShipSelect { highlight: self.selected_ship };
                     let cursor_pos = self.data.ship_menu.of(self.selected_ship) - Pos::x(1);
-                    self.cursor.update(cursor_pos, console)
+                    self.cursor.update(cursor_pos, console);
                 }
                 Submenu::Main(MainEntry::Start) => {
-                    todo!("Implement the rest of the actual game");
+                    console.enter_video_mode = Some(EnterMode::Affine(|ctrl, console| {
+                        ctrl.enable_layer(Layer::<mode::Affine>::_2);
+                        ctrl.enable_objects();
+                        ctrl.set_object_tile_mapping(object::TileMapping::OneDim);
+                        ctrl.load_palette(assets::space::background_pal.get());
+                        ctrl.load_object_palette(0, assets::space::objects_pal.get());
+                        ctrl.load_tileset(cbb::Slot::_0, &assets::space::background);
+                        ctrl.load_tileset(cbb::Slot::_1, &assets::space::ui);
+
+                        background::generate(&mut console.rng, ctrl.basic_sbb(STAR_SBB));
+
+                        let mut layer = ctrl.layer(layer::AffineSlot::_2);
+                        layer.set_overflow(true);
+                        layer.set_sbb(STAR_SBB);
+                        layer.set_priority(Priority::_2);
+                        layer.set_color_mode::<colmod::Bit8>();
+                        layer.set_size(AffineSize::Double);
+                        mem::drop(layer);
+
+                        let mut layer = ctrl.layer(layer::AffineSlot::_3);
+                        layer.set_overflow(true);
+                        layer.set_sbb(INGAME_MENU_SBB);
+                        layer.set_priority(Priority::_0);
+                        layer.set_color_mode::<colmod::Bit8>();
+                        layer.set_size(AffineSize::Double);
+                        layer.set_cbb(cbb::Slot::_1);
+                    }));
                 }
                 Submenu::ShipSelect { highlight } => {
                     self.selected_ship = highlight;
@@ -172,14 +207,14 @@ impl Mainmenu {
                     if let Some(dir) = console.input.just_direction() {
                         *entry = entry.go(dir);
                         let cursor_pos = self.data.menu_select.of(*entry) - Pos::x(2);
-                        self.cursor.update(cursor_pos, console)
+                        self.cursor.update(cursor_pos, console);
                     }
                 }
                 Submenu::ShipSelect { highlight } => {
                     if let Some(dir) = console.input.just_direction() {
                         *highlight = highlight.go(dir);
                         let cursor_pos = self.data.ship_menu.of(*highlight) - Pos::x(1);
-                        self.cursor.update(cursor_pos, console)
+                        self.cursor.update(cursor_pos, console);
                     }
                 }
             }

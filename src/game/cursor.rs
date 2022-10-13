@@ -6,7 +6,6 @@ use const_default::ConstDefault;
 use hal::{
     exec::ConsoleState,
     video::{
-        mode,
         tile::{map::Pos, sbb},
         Tile,
     },
@@ -38,7 +37,7 @@ impl<const RATE: usize> Cursor<RATE> {
     // TODO: the `previous` should be associated with the sbb or more simply the exact
     // memory location, instead of just the position.
     // Otherwise, the cursor never gets cleared when swapping screens.
-    pub(super) fn draw(&self, console: &ConsoleState, video: &mut sbb::Handle<mode::Text>) {
+    pub(super) fn draw(&self, console: &ConsoleState, video: &mut sbb::TextHandle) {
         let half_blink = RATE / 2;
         let offset = self.blink_offset;
         console.every(offset, RATE, |_| {

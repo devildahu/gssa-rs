@@ -239,22 +239,27 @@ impl<'a> Drop for Handle<'a> {
 #[derive(ConstDefault)]
 pub struct Allocator(Bitset128);
 impl Allocator {
+    // allow: the `assert!(free<128)` should ALWAYS be true, due to a check in
+    // `self.0.first_free`.
     /// Reserve an object slot.
-    pub fn reserve_slot(&mut self) -> Option<Slot> {
-        match self.0.first_free() {
-            None => None,
-            Some(free) => {
-                self.0.take(free);
-                // SAFETY: `free` is always in 0..128.
-                Some(unsafe { Slot::new_unchecked(free) })
-            }
-        }
+    /// Returns `None` if no more slots are available.
+    ///
+    /// Make sure to call [`Allocator::free_slot`] before dropping a [`Slot`],
+    /// otherwise, the object slot will forever be leaked.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn reserve(&mut self) -> Option<Slot> {
+        let free = self.0.first_free()?;
+        self.0.reserve(free);
+        assert!(free < 128);
+        // SAFETY: `free` is always in 0..128.
+        Some(unsafe { Slot::new_unchecked(free) })
     }
     // allow: `Slot` is meant to not be Copy or Clone, the goal of this method
     // is to provide an API where you can't have multiple handles to the same slot.
     /// Free an object slot, consuming it.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn free_slot(&mut self, slot: Slot) {
+    pub fn free(&mut self, slot: Slot) {
         self.0.free(slot.0);
     }
 }

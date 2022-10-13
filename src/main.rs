@@ -4,7 +4,7 @@
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::redundant_pub_crate)]
 // mixed_integer_ops: going to stabilize something like next week
-#![feature(const_mut_refs, const_replace, mixed_integer_ops)]
+#![feature(const_mut_refs, const_replace)]
 
 mod assets;
 mod game;

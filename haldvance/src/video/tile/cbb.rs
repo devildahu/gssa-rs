@@ -46,4 +46,12 @@ impl Slot {
     pub const _1: Self = unsafe { Self::new_unchecked(1) };
     pub const _2: Self = unsafe { Self::new_unchecked(2) };
     pub const _3: Self = unsafe { Self::new_unchecked(3) };
+
+    /// Return value.
+    ///
+    /// By definition, the return value is smaller than `Self::MAX_BLOCKS`.
+    #[allow(clippy::cast_possible_truncation)]
+    pub(super) const fn get(self) -> u16 {
+        self.0 as u16
+    }
 }

@@ -12,10 +12,53 @@ use crate::{
     video::{mode, object, VideoControl},
 };
 
+pub use crate::planckrand::Rng;
+
+#[derive(Clone, Copy)]
+pub enum EnterMode {
+    Text(fn(&mut VideoControl<mode::Text>, &mut ConsoleState)),
+    Mixed(fn(&mut VideoControl<mode::Mixed>, &mut ConsoleState)),
+    Affine(fn(&mut VideoControl<mode::Affine>, &mut ConsoleState)),
+}
+
 enum ControlModes {
     Text(VideoControl<mode::Text>),
     Mixed(VideoControl<mode::Mixed>),
     Affine(VideoControl<mode::Affine>),
+}
+impl ControlModes {
+    // TODO: Examine ASM
+    fn enter(self, mode: EnterMode, console: &mut ConsoleState) -> Self {
+        use mode::Mode;
+        fn enter_control_mode<M: Mode>(
+            mode: EnterMode,
+            ctrl: VideoControl<M>,
+            console: &mut ConsoleState,
+        ) -> ControlModes {
+            match mode {
+                EnterMode::Text(init) => {
+                    let mut new_mode = ctrl.enter_mode::<mode::Text>();
+                    init(&mut new_mode, console);
+                    ControlModes::Text(new_mode)
+                }
+                EnterMode::Mixed(init) => {
+                    let mut new_mode = ctrl.enter_mode::<mode::Mixed>();
+                    init(&mut new_mode, console);
+                    ControlModes::Mixed(new_mode)
+                }
+                EnterMode::Affine(init) => {
+                    let mut new_mode = ctrl.enter_mode::<mode::Affine>();
+                    init(&mut new_mode, console);
+                    ControlModes::Affine(new_mode)
+                }
+            }
+        }
+        match self {
+            Self::Text(ctrl) => enter_control_mode(mode, ctrl, console),
+            Self::Mixed(ctrl) => enter_control_mode(mode, ctrl, console),
+            Self::Affine(ctrl) => enter_control_mode(mode, ctrl, console),
+        }
+    }
 }
 
 /// Performs a busy loop until vertical blank starts.
@@ -43,6 +86,12 @@ pub struct ConsoleState {
     pub input: Input,
     /// The object allocation state.
     pub object_allocator: object::Allocator,
+    /// If set to `Some` at the end of [`GameState::logic`],
+    /// will switch to provided video mode.
+    pub enter_video_mode: Option<EnterMode>,
+    /// A random number generator.
+    /// Just set this with [`Rng::new`] to seed it.
+    pub rng: Rng,
 }
 impl ConsoleState {
     /// Run `f` once every `frequency` frame, with given `offset`.
@@ -101,11 +150,14 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     let mut console = ConsoleState::DEFAULT;
     loop {
         console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read());
-
         state.logic(&mut console);
         console.frame = console.frame.wrapping_add(1);
 
         spin_until_vblank();
+        video_control = match console.enter_video_mode.take() {
+            Some(mode) => video_control.enter(mode, &mut console),
+            None => video_control,
+        };
         match &mut video_control {
             ControlModes::Text(video_control) => state.text_draw(&mut console, video_control),
             ControlModes::Mixed(video_control) => state.mixed_draw(&mut console, video_control),
