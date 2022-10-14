@@ -9,14 +9,22 @@ The Rust port of Generic Space Shooter Advance (tm)
 I've updated the project to use a more recent version of rust
 (previous version was 1.46 for reference).
 
-- rustc 1.66.0-nightly (nightly-2022-09-20-x86_64-unknown-linux-gnu)
+- rustc 1.66.0-nightly (nightly-2022-10-12-x86_64-unknown-linux-gnu)
 - arm-none-eabi-{ld,objdump} (GNU ld) 2.32
+
+### Nightly
+
+Nightly is required for the following:
+
+The `haldvance` and `gbassets` crate requires the `const_mut_refs` as it
+heavily depends on `&mut` in `const fn`s.
 
 ### Steps
 
 1. See the [`gba`] crate README for initial setup details
 2. A symbolic link to the `resources` folder of the gssa C code. (see the
    [gssa page])
+
 ```sh
 cd png2gba
 make
@@ -46,6 +54,73 @@ cargo asm --att --no-default-features \
   --target thumbv4t-none-eabi \
   --rust "gssa_rust::game::mainmenu::MainmenuData::draw_title_screen"
 ```
+
+## Architecture
+
+The codebase is split in two (actually three) major components/crates:
+
+- `haldvance`: a HAL (hardware abstraction layer) over the GBA hardware, to
+  expose a rust-friendly API over the GBA crate. It is structured like a
+  framework, in that it enforces a structure to the end-user code. This is
+  because video operations **must** be ran during the HBLANK in order to avoid
+  screen-tearing.
+- `gbassets`: (currently very minor) an abstraction tile maps, images and
+  palettes. This is meant to expose an API to a potential tile editor/converter
+  to make it possible to author assets for your GBA games, export them and then
+  inlcude them in your game in a type-safe maner.
+- `src`: The actual game implementation and logic.
+
+`include_const_aligned` and `volmatrix` are just helper crates.
+
+### Documentation
+
+Run `cargo doc --open` to access documentation. The `doc` directory contains
+a copy of the [GBATEK] Lokathor-edited version, for offline usage. It also
+contains reasoning and discussion on major architecture choice of the game. 
+
+### Linting
+
+All crates in this repository use the `#![warn(clippy::pendantic, clippy::nursery)]`
+global attribute, the general goal is to have 0 warnings, but in this period
+of rapid iteration, it is only 
+
+### Testing
+
+LOL 🤣.
+You have to understand that interacting with the GBA means literally twiddling
+bits in hardcoded addresses.
+Short of implementing a full emulator, testing seems difficult.
+Furthermore, games being by definition a constantly moving target
+with an end product that do generally not require decades-long maintenance,
+tests are much less "value add" than in other contexts.
+
+Therefore, we rely heavily on the type system for corectness.
+This might be unwise, given the amount of unsafe required to get things running
+on the GBA, but there is not much choice in the matter.
+
+### Debugging
+
+The current intended way of debugging the game is using the
+`haldvance::{warn,info,error,debug}` macros in combination with `mgba`, this
+will print the messages in the terminal if `mgba` is launched from a terminal.
+
+It is probably possible to setup a GDB connection with mgba, but I've never
+managed to get it working, and I'm generally not comfortable with GDB.
+If you are, it would be amazing if you shared resources on how to use GDB, and
+provide hints on how to set it up 🙂
+
+### Panicking
+
+Another goal of gssa-rs is to:
+
+- Take advantage of rust's compile time guarentees to avoid runtime bound checks
+- **Never panic**. It's possible to tell where panics are possible by running
+  `strings` on the build artifact ROM. There shouldn't be any panic anywhere.
+
+A good embodiement of this philosophy is the `Drawable` trait, it exposes a
+callback and iterator based API, give control to the implementor on how to
+iterate over tiles yet still allowing the drawing code to basically be a tight
+loop.
 
 ## Current features
 
@@ -85,6 +160,8 @@ C version)
 Following are probably never going to happen, but are long term potential
 developpment for the game.
 
+- [ ] Consider switching back to a flow-driven architecture, this avoids the
+      constant diffing, since we do not "erase" the execution state.
 - [ ] Conditionally compile the rust-console/gba debugging facilities to elide
       them from the final binary when not using them.
 - [ ] Proper game over screen with restart option and score.
@@ -119,3 +196,4 @@ but no space ships shows up on screen.
 [gssa page]: https://gitlab.com/nicopap/gssa/-/tree/master
 [`gba`]: https://github.com/rust-console/gba
 [`cargo-show-asm`]: https://crates.io/crates/cargo-show-asm
+[GBATEK]: https://rust-console.github.io/gbatek-gbaonly/
