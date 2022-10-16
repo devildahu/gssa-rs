@@ -53,10 +53,34 @@ impl Palette {
     }
 }
 
+// TODO: affine alternative
+pub struct DynamicImage<const COUNT: usize> {
+    pub tiles: [u16; COUNT],
+    pub width: u16,
+}
+impl<const COUNT: usize> DynamicImage<COUNT> {
+    #[must_use]
+    pub fn new(offset: u16, tileset_width: u16, width: u16) -> Self {
+        let mut tiles = [0; COUNT];
+        Image::set_tiles(offset, width, tileset_width, &mut tiles);
+        Self { tiles, width }
+    }
+}
+impl<'a, const COUNT: usize> tile::Drawable for &'a DynamicImage<COUNT> {
+    type Iter = iter::Map<slice::Iter<'a, u16>, fn(&u16) -> Tile>;
+
+    fn for_each_line<F: FnMut(Pos, Self::Iter)>(&self, mut f: F) {
+        let DynamicImage { tiles, width } = self;
+        let to_tile = |tile: &u16| Tile::new(*tile);
+        tiles
+            .chunks_exact(*width as usize)
+            .zip(0_u16..)
+            .for_each(|(line, y)| f(Pos::y(y), line.iter().map(to_tile)));
+    }
+}
+
 // TODO: type-safe `Tileset` to make it impossible to missuse
 // with regard to Color4bit and Color8bit.
-// TODO: probably requires distinguishing "dynamic" images from
-// fixed position images.
 // # Alternative implementations.
 //
 // I need to benchmark this, because Image might be perf-critical, but there is
@@ -118,7 +142,7 @@ impl Palette {
 ///
 /// [`Tileset`]: haldvance::video::Tileset
 pub struct Image {
-    // TODO: consider using u8 to avoid code bloat here.
+    // TODO: consider using u8 to avoid code bloat here + Affine mode
     pub tiles: &'static [u16],
     pub width: u16,
 }
@@ -146,7 +170,7 @@ impl Image {
         self.width
     }
     /// Set values of a slice to a tilemap image, for use in the [`image!`]
-    /// macro in combination with the hidden constructor of `Image`.
+    /// macro in combination with the hidden `Image` constructor.
     pub const fn set_tiles(offset: u16, image_width: u16, tileset_width: u16, tiles: &mut [u16]) {
         let mut x = 0;
         let mut y = 0;

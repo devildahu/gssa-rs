@@ -30,12 +30,21 @@ pub use drawable::Drawable;
 pub use gba::mmio_types::Color;
 pub use set::Tileset;
 
-#[repr(C)]
-#[repr(align(2))]
+#[repr(transparent)]
 #[derive(Clone, Copy)]
-struct AffineEntry {
-    left: u8,
-    right: u8,
+struct AffineEntry(u16);
+impl AffineEntry {
+    const fn set_right(&mut self, right: u8) {
+        self.0 &= 0x00FF;
+        self.0 |= (right as u16) << 8;
+    }
+    const fn set_left(&mut self, left: u8) {
+        self.0 &= 0xFF00;
+        self.0 |= left as u16;
+    }
+    const fn new(left: u8, right: u8) -> Self {
+        Self(left as u16 | (right as u16) << 8)
+    }
 }
 fn align_2<'a, I: Iterator + 'a>(
     mut iter: I,
@@ -53,7 +62,7 @@ fn align_2<'a, I: Iterator + 'a>(
 fn entrify<'a, I: Iterator<Item = u8> + 'a>(
     iter: I,
 ) -> impl Iterator<Item = Result<AffineEntry, u8>> + 'a {
-    align_2(iter).map(|r| r.map(|(left, right)| AffineEntry { left, right }))
+    align_2(iter).map(|r| r.map(|(left, right)| AffineEntry::new(left, right)))
 }
 
 const SBB_SIZE: usize = 0x400;

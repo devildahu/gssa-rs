@@ -12,7 +12,7 @@ use crate::{
     video::{mode, object, VideoControl},
 };
 
-pub use crate::planckrand::Rng;
+pub use crate::planckrand::{RandBitsIter, Rng};
 
 #[derive(Clone, Copy)]
 pub enum EnterMode {
@@ -167,6 +167,22 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     }
 }
 
+#[allow(clippy::missing_const_for_fn, unused_variables, clippy::empty_loop)]
 pub fn panic_handler(info: &core::panic::PanicInfo) -> ! {
-    gba::fatal!("{}", info)
+    #[cfg(feature = "log")]
+    gba::fatal!("{}", info);
+    // SAFETY: resets the whole console
+    #[cfg(not(feature = "log"))]
+    unsafe {
+        use gba::{bios, mmio_types::ResetFlags};
+        bios::RegisterRamReset(
+            ResetFlags::new()
+                .with_vram(true)
+                .with_oam(true)
+                .with_sio(true)
+                .with_sound(true)
+                .with_all_other_io(true),
+        );
+        bios::SoftReset()
+    };
 }

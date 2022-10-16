@@ -9,6 +9,8 @@ use hal::video::{colmod, Tileset};
 pub(crate) mod space {
     use super::*;
 
+    pub(crate) const star_count: usize = 16;
+
     // TODO: consider using enum-map instead.
     /// The list of all possible enemy ships.
     pub(crate) struct Ships<T> {
@@ -104,6 +106,9 @@ pub(crate) mod space {
     // use the allocator to lay them into video memory,
     // actually that's a great idea, since I then just need
     // to use a 1D allocator, which code I already written)
+    pub(crate) const big_planet_offset: u16 = background_width * 3;
+    pub(crate) const background_width: u16 = 32;
+    pub(crate) const big_planet_size: u16 = 4;
 }
 
 /// Asset definitions of playable ships.

@@ -66,7 +66,7 @@ pub enum AffineSize {
     Octo = 3,
 }
 impl AffineSize {
-    /// The tile count of a single layer for this `TextSize`.
+    /// The proportions of a single layer for this `TextSize`.
     #[must_use]
     pub const fn region(self) -> Rect {
         match self {
@@ -76,20 +76,29 @@ impl AffineSize {
             Self::Double => Rect { width: 32, height: 32 },
         }
     }
+    /// The number of tiles in a row of a map of this size.
     #[must_use]
     pub const fn width(self) -> u16 {
         self.region().width
     }
+    /// The number of tiles in a column of a map of this size.
     #[must_use]
     pub const fn height(self) -> u16 {
         self.region().height
+    }
+    /// The tile count of a map of this size.
+    #[must_use]
+    pub const fn surface_size(self) -> u16 {
+        self.width() * self.height()
     }
 }
 
 /// A rectangular region of the screen.
 #[derive(Clone, Copy)]
 pub struct Rect {
+    /// Number of rows.
     pub width: u16,
+    /// Number of columns.
     pub height: u16,
 }
 impl Rect {

@@ -122,7 +122,7 @@ impl<'a, M: mode::Tile> Handle<'a, M> {
         old_sbb
     }
 
-    /// Set SBB of this layer, returning the previous SBB.
+    /// Set CBB of this layer, returning the previous CBB.
     #[allow(clippy::cast_possible_truncation)]
     pub fn set_cbb(&mut self, cbb: cbb::Slot) -> cbb::Slot {
         let old_cbb = cbb::Slot::new(self.value.char_base_block() as usize);

@@ -35,8 +35,52 @@ impl Rng {
     }
     /// A random `u64`, advances the rng.
     #[must_use]
-    pub fn get(&mut self) -> u64 {
+    pub fn u64(&mut self) -> u64 {
         self.seed = self.seed.wrapping_add(P0);
         random(self.seed, self.seed ^ P1)
+    }
+    /// An infinite iterator, each item an `usize` of which `bit_count` bits
+    /// are randomly set.
+    ///
+    /// # Panics
+    /// (const time only) If `COUNT > 32`
+    pub fn random_bits<const COUNT: u32>(&mut self) -> RandBitsIter<COUNT> {
+        assert!(COUNT <= usize::BITS);
+        RandBitsIter {
+            random_value: self.u64(),
+            inner: self,
+            items_for_value: 0,
+        }
+    }
+    pub fn reseed(&mut self, seed: u64) {
+        self.seed = seed;
+    }
+}
+/// Iterator for the [`Rng::random_bits`] return value.
+pub struct RandBitsIter<'a, const COUNT: u32> {
+    inner: &'a mut Rng,
+    random_value: u64,
+    items_for_value: u32,
+}
+impl<'a, const COUNT: u32> RandBitsIter<'a, COUNT> {
+    const ITEM_PER_VALUE: u32 = 64 / COUNT;
+}
+impl<'a, const COUNT: u32> Iterator for RandBitsIter<'a, COUNT> {
+    type Item = usize;
+    /// Note that this iterator is unbound, therefore is never `None`.
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.items_for_value == Self::ITEM_PER_VALUE {
+            self.random_value = self.inner.u64();
+            self.items_for_value = 0;
+        }
+        // Bitmask within range provided by user.
+        let ret = self.random_value & (2_u64.pow(COUNT) - 1);
+        self.items_for_value += 1;
+        // "delete" the random bits we just used and replace them with the
+        // newly generated ones.
+        self.random_value >>= COUNT;
+        // unwrap: by construction, COUNT will always be lower than usize::BITS,
+        // therefore
+        Some(ret.try_into().unwrap())
     }
 }

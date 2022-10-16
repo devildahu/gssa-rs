@@ -33,7 +33,7 @@ use super::blink::Blink;
 const STAR_SBB: sbb::Slot = sbb::Slot::_20;
 const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
 const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
-const INGAME_MENU_SBB: sbb::Slot = sbb::Slot::_22;
+const PLANET_SBB: sbb::Slot = sbb::Slot::_22;
 pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
 const PRESS_START: &str = "Press A";
 const DESCR_WIDTH: u16 = 21;
@@ -162,6 +162,7 @@ impl Mainmenu {
                 Submenu::Main(MainEntry::Start) => {
                     console.enter_video_mode = Some(EnterMode::Affine(|ctrl, console| {
                         ctrl.enable_layer(Layer::<mode::Affine>::_2);
+                        ctrl.enable_layer(Layer::<mode::Affine>::_3);
                         ctrl.enable_objects();
                         ctrl.set_object_tile_mapping(object::TileMapping::OneDim);
                         ctrl.load_palette(assets::space::background_pal.get());
@@ -169,23 +170,30 @@ impl Mainmenu {
                         ctrl.load_tileset(cbb::Slot::_0, &assets::space::background);
                         ctrl.load_tileset(cbb::Slot::_1, &assets::space::ui);
 
-                        background::generate(&mut console.rng, ctrl.basic_sbb(STAR_SBB));
-
+                        let background_size = AffineSize::Double;
                         let mut layer = ctrl.layer(layer::AffineSlot::_2);
                         layer.set_overflow(true);
                         layer.set_sbb(STAR_SBB);
                         layer.set_priority(Priority::_2);
                         layer.set_color_mode::<colmod::Bit8>();
-                        layer.set_size(AffineSize::Double);
+                        layer.set_size(background_size);
                         mem::drop(layer);
+                        background::generate_stars(
+                            &mut console.rng,
+                            ctrl.sbb(STAR_SBB, background_size),
+                        );
 
                         let mut layer = ctrl.layer(layer::AffineSlot::_3);
                         layer.set_overflow(true);
-                        layer.set_sbb(INGAME_MENU_SBB);
+                        layer.set_sbb(PLANET_SBB);
                         layer.set_priority(Priority::_0);
                         layer.set_color_mode::<colmod::Bit8>();
-                        layer.set_size(AffineSize::Double);
-                        layer.set_cbb(cbb::Slot::_1);
+                        layer.set_size(AffineSize::Base);
+                        mem::drop(layer);
+                        background::generate_planets(
+                            &mut console.rng,
+                            ctrl.sbb(PLANET_SBB, AffineSize::Base),
+                        );
                     }));
                 }
                 Submenu::ShipSelect { highlight } => {

@@ -46,8 +46,8 @@ environment:
 To inspect generated assembly, you may use [`cargo-show-asm`]. For inspecting
 the assembly of a specific function, add the `#[inline(never)]` attribute to
 the function and run the following command (with the last bit swapped with
-the name of the function you want to inspect, use `cargo asm` without
-specifying a function to inspect to see a list of inspectable functions):
+the name of the function you want to inspect, use `cargo asm --target thumbv4t-none-eabi`
+without specifying a function to inspect to see a list of inspectable functions):
 
 ```sh
 cargo asm --att --no-default-features \

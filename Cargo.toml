@@ -7,12 +7,12 @@ exclude = ["resources"]
 
 
 [features]
-default = ["log"]
+default = ["log", "hal/sane_asserts"]
 log = ["hal/log"]
 
 [dependencies]
 # NOTE: renamed to use hal::*; in source code
-hal = { version = "0.4", package = "haldvance", path = "haldvance" }
+hal = { version = "0.4", package = "haldvance", path = "haldvance", default-features = false }
 gbassets = { version = "0.1", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
 

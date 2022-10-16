@@ -1,6 +1,6 @@
 //! Structs related to the Tile Map, aka Screen Base Block.
 use gba::prelude::TextEntry;
-use volmatrix::rw::{VolBlock, VolMatrix};
+use volmatrix::rw::{VolAddress, VolBlock, VolMatrix};
 
 use crate::video::{
     mode,
@@ -41,11 +41,7 @@ impl Slot {
         size: map::AffineSize,
         ctrl: &mut VideoControl<M>,
     ) -> AffineHandle {
-        AffineHandle {
-            _ctrl: ctrl.erased(),
-            size,
-            sbb: self.index_volmatrix(AFFINE_SBB),
-        }
+        AffineHandle { _ctrl: ctrl.erased(), size, sbb: self.0 }
     }
     /// Return value.
     ///
@@ -141,18 +137,6 @@ impl<'a> TextHandle<'a> {
         let to_set = self.sbb.index(voladdress_index as usize);
         to_set.write(tile.get());
     }
-    /// Set a tile without checking that it is within bounds of the specified sbb.
-    ///
-    /// # Safety
-    ///
-    /// `pos` must be within bounds of the sbb.
-    unsafe fn set_tile_unchecked(&mut self, tile: Tile, pos: map::Pos) {
-        let voladdress_index = pos.x + pos.y * self.size.width();
-        let to_set = self.sbb.get(voladdress_index as usize);
-        // SAFETY: upheld by method safety requirement.
-        let to_set = unsafe { to_set.unwrap_unchecked() };
-        to_set.write(tile.get());
-    }
     pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
         drawable.all_tiles(|pos| {
             self.set_tile(Tile::EMPTY, pos + offset);
@@ -169,6 +153,17 @@ impl<'a> TextHandle<'a> {
         });
     }
 }
+
+/// Get an arbitrary affine SBB adress.
+///
+/// # Safety
+///
+/// Adress must be within vram.
+const unsafe fn affine_sbb_at(sbb: usize, offset: usize) -> VolAddress<AffineEntry> {
+    // SAFETY: function safety requirements
+    unsafe { AFFINE_SBB.get_unchecked(offset, sbb) }
+}
+
 /// Same as [`TextHandle`], but for [`mode::Affine`] layers.
 ///
 /// The two layer types differs in that a tile is encoded as a 8 bits value
@@ -184,60 +179,81 @@ impl<'a> TextHandle<'a> {
 pub struct AffineHandle<'a> {
     _ctrl: &'a mut (),
     size: map::AffineSize,
-    sbb: VolBlock<AffineEntry, SBB_SIZE>,
+    sbb: usize,
 }
 impl<'a> AffineHandle<'a> {
-    fn set_couple(&mut self, entry: AffineEntry, pos: map::Pos) {
-        // TODO: very poor perf, probably can make Pos const generic
-        // over maximum sizes, so that access is compile-time checked.
-        let voladdress_index = pos.x + pos.y * self.size.width();
-        let to_set = self.sbb.index(voladdress_index as usize);
-        to_set.write(entry);
+    /// Get the declared map size of this SBB.
+    #[must_use]
+    #[inline]
+    pub const fn size(&self) -> map::AffineSize {
+        self.size
     }
-    fn set_left(&mut self, left: u8, pos: map::Pos) {
-        // TODO: very poor perf, probably can make Pos const generic
-        // over maximum sizes, so that access is compile-time checked.
-        let voladdress_index = pos.x + pos.y * self.size.width();
-        let to_set = self.sbb.index(voladdress_index as usize);
-        let mut previous = to_set.read();
-        previous.left = left;
-        to_set.write(previous);
+    /// # Safety
+    ///
+    /// `offset` must be within bounds of the sbb
+    unsafe fn set_couple_unchecked(&mut self, to_set: AffineEntry, offset: u16) {
+        // SAFETY: method safety requirements
+        let address = unsafe { affine_sbb_at(self.sbb, (offset / 2) as usize) };
+        address.write(to_set);
     }
-    fn set_right(&mut self, right: u8, pos: map::Pos) {
-        // TODO: very poor perf, probably can make Pos const generic
-        // over maximum sizes, so that access is compile-time checked.
-        let voladdress_index = pos.x + pos.y * self.size.width();
-        let to_set = self.sbb.index(voladdress_index as usize);
-        let mut previous = to_set.read();
-        previous.right = right;
-        to_set.write(previous);
+    /// # Safety
+    ///
+    /// `offset` must be within bounds of the sbb
+    unsafe fn set_unique_unchecked(&mut self, to_set: u8, offset: u16) {
+        // SAFETY: method safety requirements
+        let address = unsafe { affine_sbb_at(self.sbb, (offset / 2) as usize) };
+        let mut previous = address.read();
+        if offset % 2 == 0 {
+            previous.set_left(to_set);
+        } else {
+            previous.set_right(to_set);
+        }
+        address.write(previous);
     }
+    /// Draws a line.
+    ///
+    /// When going out of bound of [`Self::size`], crop.
+    pub fn set_line(&mut self, pos: map::Pos, iter: impl Iterator<Item = u8>) {
+        let y_oob = pos.y >= self.size.region().height;
+        let x_oob = pos.x >= self.size.region().width;
+        if y_oob || x_oob {
+            return;
+        }
+        let max_line_len = (self.size.region().width - pos.x) as usize;
+
+        let mut iter = iter.take(max_line_len);
+        let mut offset = pos.x + pos.y * self.size.width();
+
+        let is_even = offset % 2 == 0;
+        if !is_even {
+            let right = match iter.next() {
+                Some(right) => right,
+                None => return, // Nothing to draw this line.
+            };
+            // SAFETY: both x and y are within the `self.size.region()`
+            unsafe { self.set_unique_unchecked(right, offset) };
+            offset += 1;
+        }
+        for entry in tile::entrify(iter) {
+            // SAFETY: both x and y are within the `self.size.region()`
+            // AND the line is cropped to not exceed `self.size.region().width`
+            match entry {
+                Ok(entry) => unsafe { self.set_couple_unchecked(entry, offset) },
+                Err(left) => unsafe { self.set_unique_unchecked(left, offset) },
+            }
+            offset += 2;
+        }
+    }
+    /// Draw the [`Drawable`] where top-left tile is `offset`.
+    ///
+    /// Note that if the drawable spills out of this [`Handle::size`],
+    /// then it will be cropped to the bounds of this SBB's region.
     pub fn set_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
-        drawable.for_each_line(|pos, mut iter| {
-            let mut pos = pos + offset;
-            let is_odd = pos.x % 2 == 1;
-            if is_odd {
-                let right = match iter.next() {
-                    Some(right) => right,
-                    None => return, // Nothing to draw this line.
-                };
-                // TODO: usage of .get().tile_index(), consider a different
-                // trait for affine tilemaps.
-                self.set_right(right.get().tile_index() as u8, pos);
-                pos.x += 1;
-            }
-            // TODO: examine ASM output
-            let entries = tile::entrify(iter.map(|t| t.get().tile_index() as u8));
-            for entry in entries {
-                if !self.size.region().contains(pos) {
-                    return; // End drawing this line, starting drawing new line
-                }
-                match entry {
-                    Ok(entry) => self.set_couple(entry, pos),
-                    Err(left) => self.set_left(left, pos),
-                }
-                pos.x += 1;
-            }
+        drawable.for_each_line(|pos, iter| {
+            // TODO: usage of .get().tile_index(), consider a different
+            // trait for affine tilemaps.
+            let iter = iter.map(|t| t.get().tile_index() as u8);
+            self.set_line(pos + offset, iter);
         });
     }
     pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {

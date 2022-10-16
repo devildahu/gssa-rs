@@ -18,4 +18,5 @@ pub mod log;
 pub mod sane_assert;
 pub mod video;
 
+pub use gba::bios;
 pub use input::Input;
