@@ -198,7 +198,7 @@ impl<M: mode::Tile> VideoControl<M> {
     /// Load a [`Tileset`] into video memory.
     ///
     /// Each [layer](layer::Handle) may select one of four character base block (CBB),
-    /// the CBB is the "tileset" or tile bitmap data. While the [SBB](sbb::Handle) is
+    /// the CBB is the "tileset" or tile bitmap data. While the [SBB](sbb::TextHandle) is
     /// the map, each entry an index into the CBB.
     pub fn load_tileset(&mut self, slot: cbb::Slot, tileset: &Tileset<colmod::Bit8>) {
         let data = tileset.get();

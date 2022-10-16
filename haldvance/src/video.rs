@@ -54,8 +54,8 @@ pub use tile::Tile;
 /// something on-screen in [`mode::Text`] mode, you should:
 /// - Use [`VideoControl::load_palette`] to load a palette
 /// - Use [`VideoControl::load_tileset`] to load a tileset
-/// - call [`VideoControl::sbb`] to get a [`tile::sbb::Handle`],
-/// - Use [`tile::sbb::Handle::set_tiles`] with the [`tile::Drawable`]
+/// - call [`VideoControl::sbb`] to get a [`tile::sbb::TextHandle`],
+/// - Use [`tile::sbb::TextHandle::set_tiles`] with the [`tile::Drawable`]
 ///   you want to display
 /// - Use [`VideoControl::layer`] to get a [`tile::layer::Handle`],
 /// - Use [`tile::layer::Handle::set_sbb`] to set it to the SBB you just drew

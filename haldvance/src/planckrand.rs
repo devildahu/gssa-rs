@@ -18,7 +18,7 @@ const fn random(a: u64, b: u64) -> u64 {
 }
 
 /// A random seed generator.
-/// Use the [`Rng::get`] method to get a random number.
+/// Use [`Rng::u64`] or [`Rng::random_bits`] to get a random numbers.
 pub struct Rng {
     seed: u64,
 }

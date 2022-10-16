@@ -244,7 +244,7 @@ impl Allocator {
     /// Reserve an object slot.
     /// Returns `None` if no more slots are available.
     ///
-    /// Make sure to call [`Allocator::free_slot`] before dropping a [`Slot`],
+    /// Make sure to call [`Allocator::free`] before dropping a [`Slot`],
     /// otherwise, the object slot will forever be leaked.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]

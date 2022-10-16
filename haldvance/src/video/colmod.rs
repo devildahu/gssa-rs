@@ -34,7 +34,7 @@ use crate::video::{
 ///   * `base_addr + size_of::<Color>() * (pal_bank << 4 | entry)`
 ///
 /// A series of 32×32 colors represent a [`Tile`], individual tiles are
-/// addressed by index in the [SBB](sbb::Handle).
+/// addressed by index in the [SBB](sbb::TextHandle).
 pub trait ColorMode: sealed::ColorMode {}
 
 /// 8 bit color tiles video mode.

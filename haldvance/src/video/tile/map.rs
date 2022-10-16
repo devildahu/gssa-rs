@@ -10,7 +10,7 @@ use crate::video::{
 
 // TODO: const-generic it by putting the background size as
 // const LARGE_WIDTH: bool and const LARGE_HEIGHT: bool type parameters to mode::Text.
-/// The tile map (or [SBB](sbb::Handle)) size for [`Text`] and [`Mixed`] [`Mode`]s.
+/// The tile map (or [SBB](sbb::TextHandle)) size for [`Text`] and [`Mixed`] [`Mode`]s.
 ///
 /// GBATEK calls this "Screen Size."
 ///
@@ -50,7 +50,7 @@ impl TextSize {
         self.region().height
     }
 }
-/// The tile map (or [SBB](sbb::Handle)) size for [`Mixed`] and [`Affine`] [`Mode`]s.
+/// The tile map (or [SBB](sbb::TextHandle)) size for [`Mixed`] and [`Affine`] [`Mode`]s.
 ///
 /// GBATEK calls this "Screen Size."
 #[derive(Clone, Copy)]

@@ -19,7 +19,7 @@ use crate::video::{
 // rather than starting in the data memory.
 /// A specific SBB slot.
 ///
-/// See [`Handle`] for explanations on SBB.
+/// See [`TextHandle`] for explanations on SBB.
 #[derive(Clone, Copy)]
 pub struct Slot(usize);
 impl Slot {
@@ -246,7 +246,7 @@ impl<'a> AffineHandle<'a> {
     }
     /// Draw the [`Drawable`] where top-left tile is `offset`.
     ///
-    /// Note that if the drawable spills out of this [`Handle::size`],
+    /// Note that if the drawable spills out of this [`AffineHandle::size`],
     /// then it will be cropped to the bounds of this SBB's region.
     pub fn set_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
         drawable.for_each_line(|pos, iter| {
