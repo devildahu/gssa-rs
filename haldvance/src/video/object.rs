@@ -4,7 +4,7 @@
 //! Furthermore, they may be accessed in the bitmap [`video::Mode`]s.
 //!
 //! There is a total of `128` [`Slot`]s for objects, and they may be controlled
-//! through their [`Handle`], accessed through the [`VideoControl::object`]
+//! through their [`Handle`], accessed through the [`video::Control::object`]
 //! method.
 use core::mem;
 
@@ -14,7 +14,7 @@ use volmatrix::rw::{VolAddress, VolSeries};
 
 use crate::bitset::Bitset128;
 use crate::sane_assert;
-use crate::video::{self, palette, Priority, VideoControl};
+use crate::video::{self, palette, Priority};
 
 /// A tile ID for object definitions.
 ///
@@ -38,7 +38,7 @@ impl Tile {
 }
 
 /// The layout in memory of tiles used by objects.
-/// Set this using [`VideoControl::set_object_tile_mapping`].
+/// Set this using [`video::Control::set_object_tile_mapping`].
 #[derive(Clone, Copy)]
 pub enum TileMapping {
     /// Multi-tiles objects use tiles that are one after the other in memory.
@@ -165,7 +165,7 @@ impl Slot {
 // memory load/store, unless I manage a compression scheme)
 /// Game object operations.
 ///
-/// To get an `object::Handle`, use [`VideoControl::object`].
+/// To get an `object::Handle`, use [`video::Control::object`].
 /// Note that the changes are only effective when the handle is dropped,
 /// to avoid extraneous memory reads/writes.
 pub struct Handle<'a> {
@@ -174,7 +174,7 @@ pub struct Handle<'a> {
     _ctrl: &'a mut (),
 }
 impl<'a> Handle<'a> {
-    pub(super) fn new<N: video::Mode>(ctrl: &'a mut VideoControl<N>, bg: &Slot) -> Self {
+    pub(super) fn new<N: video::Mode>(ctrl: &'a mut video::Control<N>, bg: &Slot) -> Self {
         let register = bg.register();
         Self {
             _ctrl: ctrl.erased(),

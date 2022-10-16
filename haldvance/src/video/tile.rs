@@ -17,9 +17,9 @@ use volmatrix::{
 use crate::{
     sane_assert,
     video::{
-        colmod,
+        self, colmod,
         mode::{self, Affine, Mixed, Text},
-        object, palette, VideoControl,
+        object, palette,
     },
 };
 
@@ -128,8 +128,8 @@ impl Tile {
     }
 }
 
-/// `VideoControl` methods exclusive to [`Text`] [`Mode`].
-impl VideoControl<Text> {
+/// `video::Control` methods exclusive to [`Text`] [`Mode`].
+impl video::Control<Text> {
     /// Get the requested [`layer::Handle`].
     pub fn layer(&mut self, slot: layer::Slot) -> layer::Handle<Text> {
         layer::Handle::new(self, slot)
@@ -144,8 +144,8 @@ impl VideoControl<Text> {
     }
 }
 
-/// `VideoControl` methods exclusive to [`Mixed`] [`Mode`].
-impl VideoControl<Mixed> {
+/// `video::Control` methods exclusive to [`Mixed`] [`Mode`].
+impl video::Control<Mixed> {
     /// Get handle to one of the two [`layer::Handle`] to manage it.
     pub fn text_layer(&mut self, slot: layer::MixedSlot) -> layer::Handle<Text> {
         layer::Handle::new(self, slot.into_pure_text())
@@ -177,8 +177,8 @@ impl VideoControl<Mixed> {
     }
 }
 
-/// `VideoControl` methods exclusive to [`Affine`] [`Mode`].
-impl VideoControl<Affine> {
+/// `video::Control` methods exclusive to [`Affine`] [`Mode`].
+impl video::Control<Affine> {
     /// Get handle of the affine layer.
     pub fn layer(&mut self, slot: layer::AffineSlot) -> layer::Handle<Affine> {
         layer::Handle::new(self, slot.into_pure_text())
@@ -193,8 +193,8 @@ impl VideoControl<Affine> {
     }
 }
 
-/// `VideoControl` methods for [tile](mode::Tile) [`Mode`] ([`Mixed`], [`Text`] and [`Affine`]).
-impl<M: mode::Tile> VideoControl<M> {
+/// `video::Control` methods for [tile](mode::Tile) [`Mode`] ([`Mixed`], [`Text`] and [`Affine`]).
+impl<M: mode::Tile> video::Control<M> {
     /// Load a [`Tileset`] into video memory.
     ///
     /// Each [layer](layer::Handle) may select one of four character base block (CBB),

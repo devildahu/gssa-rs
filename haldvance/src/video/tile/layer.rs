@@ -6,13 +6,13 @@ use gba::mmio_types::BackgroundControl;
 use volmatrix::rw::VolAddress;
 
 use crate::video::{
-    mode,
+    self, mode,
     tile::{
         cbb,
         map::{AffineSize, TextSize},
         sbb,
     },
-    ColorMode, Mode, Priority, VideoControl,
+    ColorMode, Mode, Priority,
 };
 
 #[cfg(doc)]
@@ -21,7 +21,7 @@ use crate::video::mode::{Affine, Mixed, Text};
 /// Background layers accessible in [`Text`] [`Mode`].
 ///
 /// To manipulate the background, get a [`Handle`] from
-/// [`VideoControl<Text>::layer`] or [`VideoControl<Mixed>::text_layer`]
+/// [`video::Control<Text>::layer`] or [`video::Control<Mixed>::text_layer`]
 /// and use the methods on [`Handle`].
 #[derive(Clone, Copy)]
 #[repr(u16)]
@@ -45,7 +45,7 @@ impl Slot {
 /// Text background layers accessible in [`Mixed`] [`Mode`].
 ///
 /// To manipulate the background, get a [`Handle`] from
-/// [`VideoControl<Mixed>::text_layer`]
+/// [`video::Control<Mixed>::text_layer`]
 /// and use the methods on [`Handle`].
 #[derive(Clone, Copy)]
 #[repr(u16)]
@@ -66,7 +66,7 @@ impl MixedSlot {
 /// Text background layers accessible in [`Affine`] [`Mode`].
 ///
 /// To manipulate the background, get a [`Handle`] from
-/// [`VideoControl<Affine>::text_layer`]
+/// [`video::Control<Affine>::text_layer`]
 /// and use the methods on [`Handle`].
 #[derive(Clone, Copy)]
 #[repr(u16)]
@@ -95,7 +95,7 @@ pub struct Handle<'a, M: mode::Tile> {
     _t: PhantomData<fn() -> M>,
 }
 impl<'a, M: mode::Tile> Handle<'a, M> {
-    pub(super) fn new<N: Mode>(ctrl: &'a mut VideoControl<N>, bg: Slot) -> Self {
+    pub(super) fn new<N: Mode>(ctrl: &'a mut video::Control<N>, bg: Slot) -> Self {
         let register = bg.register();
         Self {
             _ctrl: ctrl.erased(),

@@ -1,13 +1,13 @@
 //! High level API to safely acces video memory.
 //!
-//! To use this module, create a singleton [`VideoControl`] and use
+//! To use this module, create a singleton [`Control`] and use
 //! methods on it.
 // TODO: consider replacing SBB by "tile map" in public API.
 // TODO: consider replacing the enum { _1, _2 ... } by a macro.
 // TODO: consider having a const_generic for the textmode tile map width,
 //       so that checks and computations are done at compile time.
 // TODO: consider using a "video command" buffer, so that methods on
-//       VideoControl can be called anytime, but will be submitted guarentee at
+//       `Control` can be called anytime, but will be submitted guarentee at
 //       vblank with minimal memory moving.
 
 pub mod colmod;
@@ -35,7 +35,7 @@ pub use tile::Tile;
 
 /// Controls video memory in text mode.
 ///
-/// `VideoControl` is parametrized over [`M: Mode`](Mode).
+/// `Control` is parametrized over [`M: Mode`](Mode).
 ///
 /// `M` reflects the current display mode, each display mode has a very different
 /// API, yet manipulates the same memory region. This is fundamentally unsafe,
@@ -43,52 +43,52 @@ pub use tile::Tile;
 ///
 /// # How to read this doc page
 ///
-/// Methods on `VideoControl` are divided in many different `impl` blocks. Each
+/// Methods on `Control` are divided in many different `impl` blocks. Each
 /// for a different subset of video modes. You can use the `[+]` at the left
 /// of `impl` to hide methods for specific video modes.
 ///
-/// # How to use `VideoControl`
+/// # How to use `Control`
 ///
 /// Some methods return a `*::Handle`,
 /// which might contain the methods you are looking for. For example, to draw
 /// something on-screen in [`mode::Text`] mode, you should:
-/// - Use [`VideoControl::load_palette`] to load a palette
-/// - Use [`VideoControl::load_tileset`] to load a tileset
-/// - call [`VideoControl::sbb`] to get a [`tile::sbb::TextHandle`],
+/// - Use [`Control::load_palette`] to load a palette
+/// - Use [`Control::load_tileset`] to load a tileset
+/// - call [`Control::sbb`] to get a [`tile::sbb::TextHandle`],
 /// - Use [`tile::sbb::TextHandle::set_tiles`] with the [`tile::Drawable`]
 ///   you want to display
-/// - Use [`VideoControl::layer`] to get a [`tile::layer::Handle`],
+/// - Use [`Control::layer`] to get a [`tile::layer::Handle`],
 /// - Use [`tile::layer::Handle::set_sbb`] to set it to the SBB you just drew
 ///   your stuff to.
-/// - (make sure to use [`VideoControl::enable_layer`]) with the layer
+/// - (make sure to use [`Control::enable_layer`]) with the layer
 ///   you want to display)
-pub struct VideoControl<M: Mode> {
+pub struct Control<M: Mode> {
     _t: PhantomData<fn() -> M>,
     inner: (),
 }
 
-/// General `VideoControl` methods available in all [`Mode`]s.
-impl<M: Mode> VideoControl<M> {
+/// General `Control` methods available in all [`Mode`]s.
+impl<M: Mode> Control<M> {
     const fn new() -> Self {
         Self { _t: PhantomData, inner: () }
     }
 
-    /// Create an instance of `VideoControl`.
+    /// Create an instance of `Control`.
     ///
     /// Note that if you are using [`crate::exec::full_game`],
     /// you should not call this method!
     ///
     /// # Safety
     ///
-    /// There must be at most one `VideoControl` existing
+    /// There must be at most one `Control` existing
     /// at the same time during the execution of the game.
     ///
     /// Failure to uphold this safety comment shouldn't result
     /// in undefined behavior, but will violate the basic Rust
     /// reference model.
     #[must_use]
-    pub const unsafe fn init() -> VideoControl<mode::Text> {
-        VideoControl::<mode::Text>::new()
+    pub const unsafe fn init() -> Control<mode::Text> {
+        Control::<mode::Text>::new()
     }
 
     // TODO: Consider doing something similar to TextLayerHandle::commit
@@ -98,10 +98,10 @@ impl<M: Mode> VideoControl<M> {
     /// WARNING: this doesn't clean up video memory, so you'll probably
     /// see artifacts until you clear it up.
     #[must_use]
-    pub fn enter_mode<N: Mode>(self) -> VideoControl<N> {
+    pub fn enter_mode<N: Mode>(self) -> Control<N> {
         let old_settings = DISPCNT.read();
         DISPCNT.write(old_settings.with_display_mode(N::TYPE as u16));
-        VideoControl::new()
+        Control::new()
     }
 
     pub fn enable_layer(&mut self, layer: Layer<M>) {
@@ -156,7 +156,7 @@ macro_rules! layer_const {
         };)*
     }
 }
-/// Identify a global-level layer, eg. in [`VideoControl::enable_layer`].
+/// Identify a global-level layer, eg. in [`Control::enable_layer`].
 ///
 /// This struct is only used for enabling/disabling layers.
 /// See [`tile::layer::Slot`] and methods accepting `Slot` for more controls.

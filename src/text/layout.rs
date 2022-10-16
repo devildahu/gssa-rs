@@ -105,8 +105,8 @@ impl<'a, 'b> ToChange<'a, 'b> {
 /// # Example
 ///
 /// ```
-/// # use hal::{VideoControl, video::{self, tile::sbb}};
-/// # let mut ctrl = unsafe { VideoControl::<video::mode::Text>::init() };
+/// # use hal::{video::{self, tile::sbb}};
+/// # let mut ctrl = unsafe { video::Control::<video::mode::Text>::init() };
 /// layout! {
 ///     #[sbb(ctrl.sbb(sbb::Slot::_15))]
 ///     vertical(

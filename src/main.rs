@@ -15,9 +15,9 @@ use hal::exec::{full_game, panic_handler, GameState};
 use hal::{
     exec::ConsoleState,
     video::{
-        colmod, mode,
+        self, colmod, mode,
         tile::{cbb, layer},
-        Layer, VideoControl,
+        Layer,
     },
 };
 
@@ -44,7 +44,7 @@ impl GameState for State {
         }
     }
 
-    fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
+    fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Text>) {
         match &self.screen {
             Screen::Mainmenu(mainmenu) => mainmenu.text_draw(console, ctrl),
         }
@@ -54,9 +54,9 @@ impl GameState for State {
 #[no_mangle]
 pub fn main() -> ! {
     // SAFETY: I, Nicola Papale, solemnly promise that I will not
-    // call VideoControl::init or full_game until this video_control
+    // call video::Control::init or full_game until this video_control
     // instance is dropped.
-    let mut video_control = unsafe { VideoControl::<mode::Text>::init() };
+    let mut video_control = unsafe { video::Control::<mode::Text>::init() };
     video_control.reset_display_control();
     video_control.load_tileset(cbb::Slot::_0, &assets::menu::set);
     video_control.load_palette(assets::menu::palette.get());

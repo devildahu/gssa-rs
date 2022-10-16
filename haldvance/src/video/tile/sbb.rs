@@ -3,9 +3,8 @@ use gba::prelude::TextEntry;
 use volmatrix::rw::{VolAddress, VolBlock, VolMatrix};
 
 use crate::video::{
-    mode,
+    self, mode,
     tile::{self, drawable, map, AffineEntry, Drawable, Tile, AFFINE_SBB, SBB_SIZE, TEXT_SBB},
-    VideoControl,
 };
 
 #[cfg(doc)]
@@ -27,7 +26,7 @@ impl Slot {
     pub(super) const fn text_handle<M: mode::Tile>(
         self,
         size: map::TextSize,
-        ctrl: &mut VideoControl<M>,
+        ctrl: &mut video::Control<M>,
     ) -> TextHandle {
         TextHandle {
             _ctrl: ctrl.erased(),
@@ -39,7 +38,7 @@ impl Slot {
     pub(super) const fn affine_handle<M: mode::Tile>(
         self,
         size: map::AffineSize,
-        ctrl: &mut VideoControl<M>,
+        ctrl: &mut video::Control<M>,
     ) -> AffineHandle {
         AffineHandle { _ctrl: ctrl.erased(), size, sbb: self.0 }
     }

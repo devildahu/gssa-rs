@@ -1,8 +1,11 @@
 use volmatrix::rw::{VolBlock, VolMatrix};
 
+#[cfg(doc)]
+use crate::video;
+
 /// A specific CBB slot.
 ///
-/// See [`super::VideoControl::load_tileset`] for explanations on CBB.
+/// See [`video::Control::load_tileset`] for explanations on CBB.
 #[derive(Clone, Copy)]
 pub struct Slot(usize);
 impl Slot {

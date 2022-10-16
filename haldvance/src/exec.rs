@@ -9,22 +9,22 @@ use gba::mmio_addresses::VCOUNT;
 
 use crate::{
     input::{Input, KEYINPUT},
-    video::{mode, object, VideoControl},
+    video::{self, mode, object},
 };
 
 pub use crate::planckrand::{RandBitsIter, Rng};
 
 #[derive(Clone, Copy)]
 pub enum EnterMode {
-    Text(fn(&mut VideoControl<mode::Text>, &mut ConsoleState)),
-    Mixed(fn(&mut VideoControl<mode::Mixed>, &mut ConsoleState)),
-    Affine(fn(&mut VideoControl<mode::Affine>, &mut ConsoleState)),
+    Text(fn(&mut video::Control<mode::Text>, &mut ConsoleState)),
+    Mixed(fn(&mut video::Control<mode::Mixed>, &mut ConsoleState)),
+    Affine(fn(&mut video::Control<mode::Affine>, &mut ConsoleState)),
 }
 
 enum ControlModes {
-    Text(VideoControl<mode::Text>),
-    Mixed(VideoControl<mode::Mixed>),
-    Affine(VideoControl<mode::Affine>),
+    Text(video::Control<mode::Text>),
+    Mixed(video::Control<mode::Mixed>),
+    Affine(video::Control<mode::Affine>),
 }
 impl ControlModes {
     // TODO: Examine ASM
@@ -32,7 +32,7 @@ impl ControlModes {
         use mode::Mode;
         fn enter_control_mode<M: Mode>(
             mode: EnterMode,
-            ctrl: VideoControl<M>,
+            ctrl: video::Control<M>,
             console: &mut ConsoleState,
         ) -> ControlModes {
             match mode {
@@ -119,15 +119,15 @@ pub trait GameState {
     ///
     /// You must handle text mode, if only to setup a different mode you'll
     /// use for the rest of your game.
-    fn text_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Text>);
+    fn text_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Text>);
 
     /// Draw stuff in [`mode::Mixed`], by default does nothing.
-    fn mixed_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Mixed>) {
+    fn mixed_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Mixed>) {
         let _ = (video, console);
     }
 
     /// Draw stuff in [`mode::Affine`], by default does nothing.
-    fn affine_draw(&self, console: &mut ConsoleState, video: &mut VideoControl<mode::Affine>) {
+    fn affine_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Affine>) {
         let _ = (video, console);
     }
 }
@@ -140,13 +140,13 @@ pub trait GameState {
 ///
 /// # Safety
 ///
-/// You must not have multiple concurrent instances of [`VideoControl`]
+/// You must not have multiple concurrent instances of [`video::Control`]
 /// existing at the same time.
 ///
 /// You have been warned.
 pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     // SAFETY: upheld by function safety invariants.
-    let mut video_control = ControlModes::Text(unsafe { VideoControl::<mode::Text>::init() });
+    let mut video_control = ControlModes::Text(unsafe { video::Control::<mode::Text>::init() });
     let mut console = ConsoleState::DEFAULT;
     loop {
         console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read());

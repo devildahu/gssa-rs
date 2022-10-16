@@ -10,7 +10,7 @@ use hal::{
     exec::{ConsoleState, EnterMode},
     input::{Dir, Key},
     video::{
-        colmod, mode, object,
+        self, colmod, mode, object,
         tile::{
             cbb,
             drawable::Windowed,
@@ -18,7 +18,7 @@ use hal::{
             map::{AffineSize, Pos, Rect},
             sbb,
         },
-        Layer, Priority, VideoControl,
+        Layer, Priority,
     },
 };
 
@@ -117,7 +117,7 @@ impl ConstDefault for Mainmenu {
     };
 }
 impl Mainmenu {
-    pub(crate) fn draw_new_screen(&self, ctrl: &mut VideoControl<mode::Text>) {
+    pub(crate) fn draw_new_screen(&self, ctrl: &mut video::Control<mode::Text>) {
         let menu_slot = match self.menu {
             Submenu::Title => TITLE_SCREEN_SBB,
             Submenu::Main { .. } => MAIN_MENU_SBB,
@@ -126,7 +126,7 @@ impl Mainmenu {
         ctrl.layer(layer::Slot::_0).set_sbb(menu_slot);
     }
 
-    pub(crate) fn text_draw(&self, console: &ConsoleState, ctrl: &mut VideoControl<mode::Text>) {
+    pub(crate) fn text_draw(&self, console: &ConsoleState, ctrl: &mut video::Control<mode::Text>) {
         match &self.menu {
             Submenu::Title => self.data.draw_title_screen(console, ctrl),
             Submenu::ShipSelect { .. } => self
@@ -241,7 +241,7 @@ struct ShipMenuPos {
     name: Pos,
 }
 impl ShipMenuPos {
-    fn draw_selected(self, selected: Ship, ctrl: &mut VideoControl<mode::Text>) {
+    fn draw_selected(self, selected: Ship, ctrl: &mut video::Control<mode::Text>) {
         let mut sbb = ctrl.basic_sbb(SHIP_SELECT_SBB);
         let win = |inner, width, height| Windowed { inner, window: Rect { width, height } };
         sbb.clear_tiles(self.image, &selected.image());
@@ -279,13 +279,13 @@ pub(crate) struct MainMenuData {
     press_start: Pos,
 }
 impl MainMenuData {
-    fn draw_title_screen(&self, console: &ConsoleState, video: &mut VideoControl<mode::Text>) {
+    fn draw_title_screen(&self, console: &ConsoleState, video: &mut video::Control<mode::Text>) {
         let mut sbb = video.basic_sbb(TITLE_SCREEN_SBB);
         let blink = Blink::<_, PRESS_START_BLINK_RATE>(PRESS_START);
         blink.draw(self.press_start, console, &mut sbb);
     }
 }
-pub(crate) fn init_menu(data: &mut MainMenuData, ctrl: &mut VideoControl<mode::Text>) {
+pub(crate) fn init_menu(data: &mut MainMenuData, ctrl: &mut video::Control<mode::Text>) {
     let MainMenuData {
         menu_select: MenuSelectPos { start_game, ships },
         ship_menu: ShipMenuPos { paladin, spear, blank, image, descr, name },

@@ -14,7 +14,7 @@ pub enum Type {
     Affine = 2,
 }
 
-/// Video modes for use with [`super::VideoControl`].
+/// Video modes for use with [`super::Control`].
 ///
 /// | Mode  | Layers (BG*) | Res | Tiles/double buffering | Colors | Features | Status|
 /// |:-----:|:------------:|:---:|:----------------------:|:------:|:--------:|:--------------------:|
