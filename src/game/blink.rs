@@ -1,6 +1,7 @@
 use hal::{
     exec::ConsoleState,
-    video::tile::{map::Pos, sbb, Drawable},
+    video::tile::{sbb, Drawable},
+    video::Pos,
 };
 
 pub(super) struct Blink<T: Drawable, const RATE: usize>(pub(super) T);

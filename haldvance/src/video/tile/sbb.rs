@@ -5,6 +5,7 @@ use volmatrix::rw::{VolAddress, VolBlock, VolMatrix};
 use crate::video::{
     self, mode,
     tile::{self, drawable, map, AffineEntry, Drawable, Tile, AFFINE_SBB, SBB_SIZE, TEXT_SBB},
+    Pos,
 };
 
 #[cfg(doc)]
@@ -129,22 +130,22 @@ pub struct TextHandle<'a> {
     sbb: VolBlock<TextEntry, SBB_SIZE>,
 }
 impl<'a> TextHandle<'a> {
-    pub fn set_tile(&mut self, tile: Tile, pos: map::Pos) {
+    pub fn set_tile(&mut self, tile: Tile, pos: Pos) {
         // TODO: very poor perf, probably can make Pos const generic
         // over maximum sizes, so that access is compile-time checked.
         let voladdress_index = pos.x + pos.y * self.size.width();
         let to_set = self.sbb.index(voladdress_index as usize);
         to_set.write(tile.get());
     }
-    pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+    pub fn clear_tiles(&mut self, offset: Pos, drawable: &impl Drawable) {
         drawable.all_tiles(|pos| {
             self.set_tile(Tile::EMPTY, pos + offset);
         });
     }
-    pub fn set_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+    pub fn set_tiles(&mut self, offset: Pos, drawable: &impl Drawable) {
         drawable.for_each_line(|pos, iter| {
             for (tile, x) in iter.zip(0_u16..) {
-                let pos = map::Pos::x(x) + pos + offset;
+                let pos = Pos::x(x) + pos + offset;
                 if self.size.region().contains(pos) {
                     self.set_tile(tile, pos);
                 }
@@ -212,7 +213,7 @@ impl<'a> AffineHandle<'a> {
     /// Draws a line.
     ///
     /// When going out of bound of [`Self::size`], crop.
-    pub fn set_line(&mut self, pos: map::Pos, iter: impl Iterator<Item = u8>) {
+    pub fn set_line(&mut self, pos: Pos, iter: impl Iterator<Item = u8>) {
         let y_oob = pos.y >= self.size.region().height;
         let x_oob = pos.x >= self.size.region().width;
         if y_oob || x_oob {
@@ -247,7 +248,7 @@ impl<'a> AffineHandle<'a> {
     ///
     /// Note that if the drawable spills out of this [`AffineHandle::size`],
     /// then it will be cropped to the bounds of this SBB's region.
-    pub fn set_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+    pub fn set_tiles(&mut self, offset: Pos, drawable: &impl Drawable) {
         drawable.for_each_line(|pos, iter| {
             // TODO: usage of .get().tile_index(), consider a different
             // trait for affine tilemaps.
@@ -255,7 +256,7 @@ impl<'a> AffineHandle<'a> {
             self.set_line(pos + offset, iter);
         });
     }
-    pub fn clear_tiles(&mut self, offset: map::Pos, drawable: &impl Drawable) {
+    pub fn clear_tiles(&mut self, offset: Pos, drawable: &impl Drawable) {
         self.set_tiles(offset, &drawable::Clear(drawable));
     }
 }

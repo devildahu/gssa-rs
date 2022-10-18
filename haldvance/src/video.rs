@@ -14,6 +14,7 @@ pub mod colmod;
 pub mod mode;
 pub mod object;
 pub mod palette;
+mod structs;
 pub mod tile;
 
 use core::hint::unreachable_unchecked;
@@ -28,6 +29,7 @@ use tile::{Color, OBJ_PALRAM};
 
 pub use colmod::ColorMode;
 pub use mode::Mode;
+pub use structs::Pos;
 pub use tile::set::Tileset;
 pub use tile::Tile;
 

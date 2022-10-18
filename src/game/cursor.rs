@@ -5,10 +5,7 @@ use core::mem;
 use const_default::ConstDefault;
 use hal::{
     exec::ConsoleState,
-    video::{
-        tile::{map::Pos, sbb},
-        Tile,
-    },
+    video::{tile::sbb, Pos, Tile},
 };
 
 /// A drawable cursor that supports clearing when moved and

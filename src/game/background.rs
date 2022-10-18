@@ -1,8 +1,5 @@
 use gbassets::DynamicImage;
-use hal::{
-    exec::Rng,
-    video::tile::{map, sbb},
-};
+use hal::{exec::Rng, video::tile::sbb, video::Pos};
 
 use crate::assets::space;
 
@@ -30,7 +27,7 @@ pub(crate) fn generate_stars(rng: &mut Rng, mut sbb: sbb::AffineHandle) {
                 let should_show = rand & 0b1111_0000 == 0b1111_0000;
                 should_show.then_some(tile).unwrap_or_default()
             });
-        sbb.set_line(map::Pos::y(y), iter);
+        sbb.set_line(Pos::y(y), iter);
     }
 }
 pub(crate) fn generate_planets(rng: &mut Rng, mut sbb: sbb::AffineHandle) {
@@ -55,6 +52,6 @@ pub(crate) fn generate_planets(rng: &mut Rng, mut sbb: sbb::AffineHandle) {
         let planet = space::big_planet_offset + planet_size * (position % 4);
         let image = DynamicImage::<16>::new(planet, space::background_width, planet_size);
 
-        sbb.set_tiles(map::Pos { x, y }, &&image);
+        sbb.set_tiles(Pos { x, y }, &&image);
     }
 }

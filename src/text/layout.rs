@@ -1,6 +1,9 @@
 //! Manage text layout on screen.
 
-use hal::video::tile::{map::Pos, sbb, Drawable};
+use hal::video::{
+    tile::{sbb, Drawable},
+    Pos,
+};
 
 #[doc(hidden)]
 #[derive(Copy, Clone)]

@@ -8,10 +8,7 @@ use core::{iter, slice};
 
 use const_default::ConstDefault;
 
-use super::{
-    map::{Pos, Rect},
-    Tile,
-};
+use crate::video::{tile::map::Rect, Pos, Tile};
 
 #[cfg(doc)]
 use crate::video::{

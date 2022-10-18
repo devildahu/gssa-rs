@@ -11,14 +11,9 @@ use hal::{
     input::{Dir, Key},
     video::{
         self, colmod, mode, object,
-        tile::{
-            cbb,
-            drawable::Windowed,
-            layer,
-            map::{AffineSize, Pos, Rect},
-            sbb,
-        },
-        Layer, Priority,
+        tile::map::{AffineSize, Rect},
+        tile::{cbb, drawable::Windowed, layer, sbb},
+        Layer, Pos, Priority,
     },
 };
 

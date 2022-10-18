@@ -5,11 +5,7 @@
 
 use core::{iter, ops::Range, slice};
 
-use haldvance::video::{
-    palette,
-    tile::{self, map::Pos},
-    Tile,
-};
+use haldvance::video::{palette, tile, Pos, Tile};
 
 // For usage in the macros defined here.
 #[doc(hidden)]
