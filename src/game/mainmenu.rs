@@ -1,29 +1,25 @@
 //! Main menu handling.
 mod cycle;
 
-use core::mem;
-
 use const_default::ConstDefault;
-
 use gbassets::Image;
 use hal::{
     exec::{ConsoleState, EnterMode},
     input::{Dir, Key},
     video::{
-        self, colmod, mode, object,
-        tile::map::{AffineSize, Rect},
-        tile::{cbb, drawable::Windowed, layer, sbb},
-        Layer, Pos, Priority,
+        self, mode,
+        tile::{drawable::Windowed, layer, map::Rect, sbb},
+        Pos,
     },
 };
 
 use crate::{
     assets,
-    game::{background, cursor::Cursor, state::Transition},
+    game::{cursor::Cursor, space, state::Transition, Ship},
     layout,
 };
 
-use super::{blink::Blink, PLANET_SBB, STAR_SBB};
+use super::blink::Blink;
 
 const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
 const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
@@ -33,14 +29,6 @@ const DESCR_WIDTH: u16 = 21;
 
 const PRESS_START_BLINK_RATE: usize = 1 << 6;
 
-crate::cycling_enum! {
-    #[derive(Clone, Copy)]
-    pub(crate) enum Ship {
-        Blank,
-        Spear,
-        Paladin,
-    }
-}
 impl Ship {
     const fn image(self) -> Image {
         use assets::menu::player_ships;
@@ -153,42 +141,8 @@ impl Mainmenu {
                     self.cursor.update(cursor_pos, console);
                 }
                 Submenu::Main(MainEntry::Start) => {
-                    console.enter_video_mode = Some(EnterMode::Affine(|ctrl, console| {
-                        ctrl.enable_layer(Layer::<mode::Affine>::_2);
-                        ctrl.enable_layer(Layer::<mode::Affine>::_3);
-                        ctrl.enable_objects();
-                        ctrl.set_object_tile_mapping(object::TileMapping::OneDim);
-                        ctrl.load_palette(assets::space::background_pal.get());
-                        ctrl.load_object_palette(0, assets::space::objects_pal.get());
-                        ctrl.load_tileset(cbb::Slot::_0, &assets::space::background);
-                        ctrl.load_tileset(cbb::Slot::_1, &assets::space::ui);
-
-                        let background_size = AffineSize::Double;
-                        let mut layer = ctrl.layer(layer::affine::Slot::_2);
-                        layer.set_overflow(true);
-                        layer.set_sbb(STAR_SBB);
-                        layer.set_priority(Priority::_2);
-                        layer.set_color_mode::<colmod::Bit8>();
-                        layer.set_size(background_size);
-                        mem::drop(layer);
-                        background::generate_stars(
-                            &mut console.rng,
-                            ctrl.sbb(STAR_SBB, background_size),
-                        );
-
-                        let mut layer = ctrl.layer(layer::affine::Slot::_3);
-                        layer.set_overflow(true);
-                        layer.set_sbb(PLANET_SBB);
-                        layer.set_priority(Priority::_0);
-                        layer.set_color_mode::<colmod::Bit8>();
-                        layer.set_size(AffineSize::Base);
-                        mem::drop(layer);
-                        background::generate_planets(
-                            &mut console.rng,
-                            ctrl.sbb(PLANET_SBB, AffineSize::Base),
-                        );
-                    }));
-                    return Transition::Next;
+                    console.enter_video_mode = Some(EnterMode::Affine(space::setup_video));
+                    return Transition::EnterGame(self.selected_ship);
                 }
                 Submenu::ShipSelect { highlight } => {
                     self.selected_ship = highlight;

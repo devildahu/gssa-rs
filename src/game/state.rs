@@ -1,5 +1,7 @@
+use super::Ship;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub enum Transition {
+pub(crate) enum Transition {
     Stay,
-    Next,
+    EnterGame(Ship),
 }

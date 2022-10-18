@@ -2,7 +2,7 @@
 
 use gbassets::{image, palette, Cycle, Image, Palette};
 use hal::tileset;
-use hal::video::{colmod, Tileset};
+use hal::video::{colmod, object, Tileset};
 
 /// Asset definitions of the main game graphical elements.
 #[allow(non_upper_case_globals, clippy::wildcard_imports)]
@@ -31,18 +31,12 @@ pub(crate) mod space {
         pub(crate) big_violet: T,
     }
     /// Enemy ship tile size specification.
-    pub(crate) struct ShipTile {
-        width: usize,
-        height: usize,
-    }
+    pub(crate) struct ShipTile(object::Shape);
     impl ShipTile {
-        const fn new(width: usize, height: usize) -> Self {
-            Self { width, height }
-        }
-        const BIG: Self = Self::new(4, 4);
-        const MED: Self = Self::new(2, 2);
-        const LONG: Self = Self::new(2, 1);
-        const SMALL: Self = Self::new(1, 1);
+        const BIG: Self = Self(object::Shape::_4x4);
+        const MED: Self = Self(object::Shape::_2x2);
+        const LONG: Self = Self(object::Shape::_2x1);
+        const SMALL: Self = Self(object::Shape::_1x1);
     }
     /// The in-game menu tiles.
     pub(crate) const ui: Tileset<colmod::Bit8> = tileset!("gamesetui_til.bin");

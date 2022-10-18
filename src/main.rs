@@ -35,7 +35,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 // TODO: devildahu logo + rust logo
 enum Screen {
     Mainmenu(Mainmenu),
-    Space,
+    Space(game::Space),
 }
 struct State {
     screen: Screen,
@@ -45,11 +45,13 @@ impl GameState for State {
         match &mut self.screen {
             Screen::Mainmenu(mainmenu) => {
                 let result = mainmenu.logic(console);
-                if result == Transition::Next {
-                    self.screen = Screen::Space;
+                if let Transition::EnterGame(ship) = result {
+                    // TODO: unwrap
+                    let slot = console.objects.reserve().unwrap();
+                    self.screen = Screen::Space(game::Space::start(ship, slot));
                 };
             }
-            Screen::Space => {
+            Screen::Space(ship) => {
                 space::logic(console);
             }
         }
@@ -61,7 +63,7 @@ impl GameState for State {
         }
     }
     fn affine_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
-        if let Screen::Space = &self.screen {
+        if let Screen::Space(_) = &self.screen {
             space::affine_draw(console, ctrl);
         }
     }
