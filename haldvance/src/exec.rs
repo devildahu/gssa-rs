@@ -85,7 +85,7 @@ pub struct ConsoleState {
     /// The button state
     pub input: Input,
     /// The object allocation state.
-    pub object_allocator: object::Allocator,
+    pub objects: object::Allocator,
     /// If set to `Some` at the end of [`GameState::logic`],
     /// will switch to provided video mode.
     pub enter_video_mode: Option<EnterMode>,
@@ -142,6 +142,9 @@ pub trait GameState {
 ///
 /// You must not have multiple concurrent instances of [`video::Control`]
 /// existing at the same time.
+///
+/// This also access arbitrary memory addresses, so if ran outside of the GBA,
+/// it basically is a big ball of segfaults.
 ///
 /// You have been warned.
 pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {

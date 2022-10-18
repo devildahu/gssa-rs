@@ -10,7 +10,7 @@ use core::mem;
 
 use const_default::ConstDefault;
 use gba::mmio_types::{ObjAttr0, ObjAttr1, ObjAttr2};
-use volmatrix::rw::{VolAddress, VolSeries};
+use volmatrix::rw::VolAddress;
 
 use crate::bitset::Bitset128;
 use crate::sane_assert;
@@ -86,8 +86,6 @@ macro_rules! impl_shape_consts {
         /// An object of `
         #[doc = stringify!($const_name)]
         /// ` tiles.
-        ///
-        /// In `_WxH`, `W` is width and `H` is height.
         pub const $const_name: Self = Self {
             direction: ShapeDir::$direction,
             size: ShapeSize::$size,
@@ -135,9 +133,12 @@ struct Attributes {
 
 const OBJ_COUNT: usize = 128;
 const OBJ_ADDR_USIZE: usize = 0x0700_0000;
-const OBJ_ARRAY: VolSeries<Attributes, OBJ_COUNT, { mem::size_of::<[u16; 4]>() }> =
-    unsafe { VolSeries::new(OBJ_ADDR_USIZE) };
 
+/// An object slot.
+///
+/// You must use [`Allocator::reserve`] to get a `Slot`, to pass it to
+/// [`video::Control::object`] to get a [`Handle`] to be able to draw objects
+/// on screen. (See [`Handle`] for details)
 pub struct Slot(u32);
 impl Slot {
     // allow: We assume here we will compile for the GBA only, and it's really
@@ -155,15 +156,19 @@ impl Slot {
 
     const fn register(&self) -> VolAddress<Attributes> {
         // SAFETY: `self.0` is by definition lower than Self::MAX_BLOCKS,
-        // which is the size of OBJ_ARRAY,
-        // meaning that `.get` returns always a `Some`
-        OBJ_ARRAY.index(self.0 as usize)
+        // which is the size of OBJ_ARRAY, meaning that `.get` returns always a `Some`.
+        let offset = mem::size_of::<[u16; 4]>() * self.0 as usize;
+        unsafe { VolAddress::new(OBJ_ADDR_USIZE + offset) }
     }
 }
 
 // TODO: reduce memory operations. (probably impossible to outperform
 // memory load/store, unless I manage a compression scheme)
-/// Game object operations.
+/// Game object video operations.
+///
+/// An "object" is a sprite on screen that can move independently from the
+/// background. Such as Yoshi in Yoshi's Island. There can be up to 128
+/// objects on screen at the same time.
 ///
 /// To get an `object::Handle`, use [`video::Control::object`].
 /// Note that the changes are only effective when the handle is dropped,
@@ -236,6 +241,9 @@ impl<'a> Drop for Handle<'a> {
 }
 
 // TODO: drop impl on Slot that updates this probably.
+/// A generic allocator of exactly 128 items.
+///
+/// This is a 0-d allocator, ie: each allocated item are atoms of identical size.
 #[derive(ConstDefault)]
 pub struct Allocator(Bitset128);
 impl Allocator {
