@@ -21,13 +21,13 @@ pub(crate) fn generate_stars(rng: &mut Rng, mut sbb: sbb::AffineHandle) {
         // TODO: this can be improved by only using more bits for random tile
         // if we satisfy the 25% chance hit
         let iter = rng
-            .random_bits::<7>()
+            .random_bits::<8>()
             .take(region.width() as usize)
             .map(|rand| {
                 // unwrap: never fails because % 16 will always be within range of u8
                 let tile: u8 = (rand % space::star_count).try_into().unwrap();
-                // True 25% of the time
-                let should_show = rand & 0b111_0000 == 0b111_0000;
+                // True 1 time out of 16
+                let should_show = rand & 0b1111_0000 == 0b1111_0000;
                 should_show.then_some(tile).unwrap_or_default()
             });
         sbb.set_line(map::Pos::y(y), iter);

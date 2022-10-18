@@ -147,7 +147,8 @@ C version)
    - [ ] Add OBJ handling
    - [ ] Palette manager
    - [ ] Use interrupts over busy-looping for waiting VBLANK
-- [ ] See game background scroll and palette cycle (with visible tearing)
+- [X] See game background scroll (with visible tearing)
+- [ ] Cycle palette to give a shimering effect to bullets and background stars
 - [ ] Pause and resume the game (allowing to move the "pause menu" message)
 - [ ] spawn multiple waves of enemies on a timer, shooting bullets at player
 - [ ] enemy AI capable of moving in set patterns, aiming and dodging the player
@@ -166,7 +167,8 @@ developpment for the game.
       them from the final binary when not using them.
 - [ ] Proper game over screen with restart option and score.
 - [ ] Game over screen similar to a panic
-- [ ] Setup <https://github.com/est31/warnalyzer> for multi-crate dead code detection
+- [ ] Setup <https://github.com/Technolution/rustig> or <https://github.com/viperproject/prusti-dev>
+      for panic checking and other static analysis functionalities
 - [ ] Improve the HAL so that it's possible to make a fully-featured game
    - [ ] Allow switching video mode in exec::GameState
    - [ ] proc/simple macro for generating _1, _2 etc. for typesafe registry values.

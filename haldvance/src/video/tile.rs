@@ -131,7 +131,7 @@ impl Tile {
 /// `video::Control` methods exclusive to [`Text`] [`Mode`].
 impl video::Control<Text> {
     /// Get the requested [`layer::Handle`].
-    pub fn layer(&mut self, slot: layer::Slot) -> layer::Handle<Text> {
+    pub fn layer(&mut self, slot: layer::text::Slot) -> layer::Handle<Text> {
         layer::Handle::new(self, slot)
     }
     /// Obtain a [`sbb::TextHandle`] to write tiles into a tile map.
@@ -153,7 +153,7 @@ impl video::Control<Mixed> {
 
     /// Get handle of the affine layer.
     pub fn affine_layer(&mut self) -> layer::Handle<Affine> {
-        layer::Handle::new(self, layer::Slot::_2)
+        layer::Handle::new(self, layer::affine::Slot::_2)
     }
     /// Obtain a [`sbb::AffineHandle`] to write tiles into a tile map.
     pub const fn affine_sbb(
@@ -180,8 +180,8 @@ impl video::Control<Mixed> {
 /// `video::Control` methods exclusive to [`Affine`] [`Mode`].
 impl video::Control<Affine> {
     /// Get handle of the affine layer.
-    pub fn layer(&mut self, slot: layer::AffineSlot) -> layer::Handle<Affine> {
-        layer::Handle::new(self, slot.into_pure_text())
+    pub fn layer(&mut self, slot: layer::affine::Slot) -> layer::Handle<Affine> {
+        layer::Handle::new(self, slot)
     }
     /// Obtain a [`sbb::AffineHandle`] to write tiles into a tile map.
     pub const fn sbb(&mut self, slot: sbb::Slot, map_size: map::AffineSize) -> sbb::AffineHandle {

@@ -21,7 +21,11 @@ use hal::{
     },
 };
 
-use game::mainmenu::{Mainmenu, TITLE_SCREEN_SBB};
+use game::{
+    mainmenu::{Mainmenu, TITLE_SCREEN_SBB},
+    space,
+    state::Transition,
+};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -31,6 +35,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 // TODO: devildahu logo + rust logo
 enum Screen {
     Mainmenu(Mainmenu),
+    Space,
 }
 struct State {
     screen: Screen,
@@ -39,14 +44,25 @@ impl GameState for State {
     fn logic(&mut self, console: &mut ConsoleState) {
         match &mut self.screen {
             Screen::Mainmenu(mainmenu) => {
-                mainmenu.logic(console);
+                let result = mainmenu.logic(console);
+                if result == Transition::Next {
+                    self.screen = Screen::Space;
+                };
+            }
+            Screen::Space => {
+                space::logic(console);
             }
         }
     }
 
     fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Text>) {
-        match &self.screen {
-            Screen::Mainmenu(mainmenu) => mainmenu.text_draw(console, ctrl),
+        if let Screen::Mainmenu(mainmenu) = &self.screen {
+            mainmenu.text_draw(console, ctrl);
+        }
+    }
+    fn affine_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
+        if let Screen::Space = &self.screen {
+            space::affine_draw(console, ctrl);
         }
     }
 }
@@ -63,7 +79,7 @@ pub fn main() -> ! {
     video_control.enable_layer(Layer::<mode::Text>::_0);
     hal::warn!("babbooon metal world");
     {
-        let mut layer = video_control.layer(layer::Slot::_0);
+        let mut layer = video_control.layer(layer::text::Slot::_0);
         layer.set_color_mode::<colmod::Bit8>();
         layer.set_sbb(TITLE_SCREEN_SBB);
     }

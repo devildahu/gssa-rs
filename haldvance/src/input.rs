@@ -144,6 +144,7 @@ impl Input {
     }
     // TODO: make those functions const once <https://github.com/rust-lang/rust/issues/67792>
     // lands
+    #[allow(clippy::missing_const_for_fn)]
     pub fn pressed(self, key: impl Into<KeyGroup>) -> bool {
         let key = key.into();
         self.current.any_pressed(key)

@@ -1,4 +1,6 @@
 //! Deal with GBA video modes, see [`Mode`].
+use crate::video::tile::layer::{self, affine, text};
+
 #[cfg(doc)]
 use crate::video::{
     colmod,
@@ -46,6 +48,9 @@ pub enum Type {
 /// [`map::AffineSize`]: crate::video::tile::map::AffineSize
 pub trait Mode: sealed::Mode {}
 
+/// A background mode. Used to control backgrounds.
+pub trait Background: sealed::Background {}
+
 /// Subset of [`Mode`]s that support tile-based access.
 pub trait Tile: Mode {}
 
@@ -63,6 +68,10 @@ impl Mode for Text {}
 impl Tile for Text {}
 impl sealed::Mode for Text {
     const TYPE: Type = Type::Text;
+}
+impl Background for Text {}
+impl sealed::Background for Text {
+    type Slot = text::Slot;
 }
 
 /// Mixed mode, tile+map based background mode controlled like [`Text`]
@@ -106,6 +115,10 @@ impl Tile for Affine {}
 impl sealed::Mode for Affine {
     const TYPE: Type = Type::Affine;
 }
+impl Background for Affine {}
+impl sealed::Background for Affine {
+    type Slot = affine::Slot;
+}
 
 /// traits to "seal" public traits in this module, to prevent
 /// downstream implementation and exposing lower level implementation
@@ -117,5 +130,8 @@ pub(super) mod sealed {
     pub trait Mode {
         /// The `Type` representation of the display mode, one of 0,1,2,4,5
         const TYPE: super::Type;
+    }
+    pub trait Background {
+        type Slot: super::layer::Slot;
     }
 }

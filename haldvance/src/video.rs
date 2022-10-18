@@ -159,7 +159,7 @@ macro_rules! layer_const {
 /// Identify a global-level layer, eg. in [`Control::enable_layer`].
 ///
 /// This struct is only used for enabling/disabling layers.
-/// See [`tile::layer::Slot`] and methods accepting `Slot` for more controls.
+/// See [`tile::layer::text::Slot`] and methods accepting `Slot` for more controls.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Layer<M: Mode> {

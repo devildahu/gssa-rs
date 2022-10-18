@@ -27,11 +27,12 @@ impl<const RATE: usize> Cursor<RATE> {
     pub(super) const fn clear_previous(&mut self) {
         self.previous = None;
     }
+    #[allow(clippy::cast_possible_wrap)]
     pub(super) const fn update(&mut self, new_pos: Pos, console: &ConsoleState) {
         self.previous = Some(mem::replace(&mut self.current, new_pos));
         // Keeps track of last update frame, frequency will be offset by this value,
         // so that when the cursor is updated, the new position is always immediately visible
-        self.blink_offset = -1 - console.frame as isize;
+        self.blink_offset = -1 - (console.frame as isize);
     }
     // TODO: if update doesn't change the cursor position, it shouldn't be cleared.
     // TODO: the `previous` should be associated with the sbb or more simply the exact

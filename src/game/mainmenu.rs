@@ -24,16 +24,14 @@ use hal::{
 
 use crate::{
     assets,
-    game::{background, cursor::Cursor},
+    game::{background, cursor::Cursor, state::Transition},
     layout,
 };
 
-use super::blink::Blink;
+use super::{blink::Blink, PLANET_SBB, STAR_SBB};
 
-const STAR_SBB: sbb::Slot = sbb::Slot::_20;
 const MAIN_MENU_SBB: sbb::Slot = sbb::Slot::_16;
 const SHIP_SELECT_SBB: sbb::Slot = sbb::Slot::_17;
-const PLANET_SBB: sbb::Slot = sbb::Slot::_22;
 pub(crate) const TITLE_SCREEN_SBB: sbb::Slot = sbb::Slot::_15;
 const PRESS_START: &str = "Press A";
 const DESCR_WIDTH: u16 = 21;
@@ -123,7 +121,7 @@ impl Mainmenu {
             Submenu::Main { .. } => MAIN_MENU_SBB,
             Submenu::ShipSelect { .. } => SHIP_SELECT_SBB,
         };
-        ctrl.layer(layer::Slot::_0).set_sbb(menu_slot);
+        ctrl.layer(layer::text::Slot::_0).set_sbb(menu_slot);
     }
 
     pub(crate) fn text_draw(&self, console: &ConsoleState, ctrl: &mut video::Control<mode::Text>) {
@@ -142,7 +140,7 @@ impl Mainmenu {
         }
     }
 
-    pub(crate) fn logic(&mut self, console: &mut ConsoleState) {
+    pub(crate) fn logic(&mut self, console: &mut ConsoleState) -> Transition {
         self.just_new_screen = false;
         self.cursor.clear_previous();
         if console.input.just_pressed(Key::A) {
@@ -171,7 +169,7 @@ impl Mainmenu {
                         ctrl.load_tileset(cbb::Slot::_1, &assets::space::ui);
 
                         let background_size = AffineSize::Double;
-                        let mut layer = ctrl.layer(layer::AffineSlot::_2);
+                        let mut layer = ctrl.layer(layer::affine::Slot::_2);
                         layer.set_overflow(true);
                         layer.set_sbb(STAR_SBB);
                         layer.set_priority(Priority::_2);
@@ -183,7 +181,7 @@ impl Mainmenu {
                             ctrl.sbb(STAR_SBB, background_size),
                         );
 
-                        let mut layer = ctrl.layer(layer::AffineSlot::_3);
+                        let mut layer = ctrl.layer(layer::affine::Slot::_3);
                         layer.set_overflow(true);
                         layer.set_sbb(PLANET_SBB);
                         layer.set_priority(Priority::_0);
@@ -195,6 +193,7 @@ impl Mainmenu {
                             ctrl.sbb(PLANET_SBB, AffineSize::Base),
                         );
                     }));
+                    return Transition::Next;
                 }
                 Submenu::ShipSelect { highlight } => {
                     self.selected_ship = highlight;
@@ -227,6 +226,7 @@ impl Mainmenu {
                 }
             }
         }
+        Transition::Stay
     }
 }
 
