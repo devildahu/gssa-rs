@@ -25,6 +25,8 @@ use gba::mmio_addresses::DISPCNT;
 use gba::mmio_types::DisplayControl;
 use volmatrix::VolMemcopy;
 
+use crate::exec::ConsoleState;
+use object::{sprite, Sprite};
 use tile::{Color, OBJ_PALRAM};
 
 pub use colmod::ColorMode;
@@ -119,6 +121,12 @@ impl<M: Mode> Control<M> {
     pub fn reset_display_control(&mut self) {
         DISPCNT.write(DisplayControl::new().with_display_mode(M::TYPE as u16));
     }
+    /// Manually reset ALL objects to invisible.
+    pub fn reset_objects(&mut self) {
+        (0..object::Slot::MAX_BLOCKS)
+            .map(|slot| unsafe { object::Slot::new_unchecked(slot) })
+            .for_each(|slot| object::Handle::new(self, &slot).set_visible(false));
+    }
 
     pub fn set_object_tile_mapping(&mut self, mapping: object::TileMapping) {
         let old_settings = DISPCNT.read();
@@ -141,13 +149,60 @@ impl<M: Mode> Control<M> {
     }
 
     /// Obtain a [`object::Handle`] to manage objects.
+    ///
+    /// See [`object`] module doc for how to use objects.
     pub fn object<'a>(&'a mut self, slot: &object::Slot) -> object::Handle<'a> {
         object::Handle::new(self, slot)
     }
-    // TODO: special method for palette::Bank type
+    // TODO: method for palette::Bank type, since this is what I use for objects
+    // in gssa
     /// Load a palette to the object palette memory.
+    ///
+    /// See [`object`] module doc for how to use objects.
     pub fn load_object_palette(&mut self, offset: usize, palette: &[Color]) {
         OBJ_PALRAM.write_slice_at_offset(offset, palette);
+    }
+    /// Load a sprite into object sprite memory.
+    /// This does nothing and returns directly the slot if already loaded.
+    ///
+    /// `None` if there is not enough sprite space (up to 1024 8×8 tiles can
+    /// be loaded at once)
+    ///
+    /// See [`object`] module doc for how to use objects.
+    pub fn load_sprite(
+        &mut self,
+        console: &mut ConsoleState,
+        sprite: &Sprite,
+    ) -> Option<sprite::Slot> {
+        let offset = console.objects.reserve_sprite(sprite)?;
+        let address = offset.get() as usize;
+        // TODO: probably worth considering a map to u32 somehow
+        object::OBJ_SPRITE.write_slice_at_offset(address, sprite.get());
+        Some(offset)
+    }
+    /// Remove `sprite` from video memory. Warning: if there are still active
+    /// objects refering to the given `Sprite`, then their value might change
+    /// under your feet.
+    ///
+    /// Returns `true` if `sprite` was indeed loaded,
+    /// otherwise does nothing and returns `false`.
+    pub fn unload_spirte(&mut self, console: &mut ConsoleState, sprite: &Sprite) -> bool {
+        console.objects.free_sprite(sprite.id)
+    }
+    /// Replace a `previous` object sprite with `new`,
+    /// may be useful for animations.
+    ///
+    /// Does nothing if `new` is not of same size as `previous`.
+    pub fn replace_spirte(
+        &mut self,
+        console: &mut ConsoleState,
+        previous: &Sprite,
+        new: &Sprite,
+    ) -> Option<sprite::Slot> {
+        let offset = console.objects.replace_sprite(previous.id, new)?;
+        let address = offset.get() as usize;
+        object::OBJ_SPRITE.write_slice_at_offset(address, new.get());
+        Some(offset)
     }
 }
 macro_rules! layer_const {

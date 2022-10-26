@@ -2,7 +2,7 @@
 //!
 //! Higher level API to deal with game loop,
 //! proper handling of draw commands etc.
-use core::mem;
+use core::{marker::PhantomData, mem};
 
 use const_default::ConstDefault;
 use gba::mmio_addresses::VCOUNT;
@@ -14,51 +14,54 @@ use crate::{
 
 pub use crate::planckrand::{RandBitsIter, Rng};
 
-#[derive(Clone, Copy)]
-pub enum EnterMode {
-    Text(fn(&mut video::Control<mode::Text>, &mut ConsoleState)),
-    Mixed(fn(&mut video::Control<mode::Mixed>, &mut ConsoleState)),
-    Affine(fn(&mut video::Control<mode::Affine>, &mut ConsoleState)),
+pub enum EnterMode<T: ?Sized, F, G, H>
+where
+    F: FnOnce(&mut video::Control<mode::Text>, &T, &mut ConsoleState),
+    G: FnOnce(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState),
+    H: FnOnce(&mut video::Control<mode::Affine>, &T, &mut ConsoleState),
+{
+    Text(F),
+    Mixed(G),
+    Affine(H),
+    #[doc(hidden)]
+    #[allow(non_camel_case_types)]
+    _phantom(PhantomData<T>),
+}
+impl<T: ?Sized, F, G, H> EnterMode<T, F, G, H>
+where
+    F: FnOnce(&mut video::Control<mode::Text>, &T, &mut ConsoleState),
+    G: FnOnce(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState),
+    H: FnOnce(&mut video::Control<mode::Affine>, &T, &mut ConsoleState),
+{
+    // TODO: inspect asm
+    fn enter(self, mode: ControlModes, state: &T, console: &mut ConsoleState) -> ControlModes {
+        macro_rules! execute_enter {
+            (@branch $variant:ident, $ctrl:expr, $init:expr) => {{
+                let mut new_mode = $ctrl.enter_mode::<mode::$variant>();
+                $init(&mut new_mode, state, console);
+                ControlModes::$variant(new_mode)
+            }};
+            ($current:ident, $ctrl:expr) => {
+                match self {
+                    EnterMode::Text(init) => execute_enter!(@branch Text, $ctrl, init),
+                    EnterMode::Mixed(init) => execute_enter!(@branch Mixed, $ctrl, init),
+                    EnterMode::Affine(init) => execute_enter!(@branch Affine, $ctrl, init),
+                    EnterMode::_phantom(_) => ControlModes::$current($ctrl),
+                }
+            }
+        }
+        match mode {
+            ControlModes::Text(ctrl) => execute_enter!(Text, ctrl),
+            ControlModes::Mixed(ctrl) => execute_enter!(Mixed, ctrl),
+            ControlModes::Affine(ctrl) => execute_enter!(Affine, ctrl),
+        }
+    }
 }
 
 enum ControlModes {
     Text(video::Control<mode::Text>),
     Mixed(video::Control<mode::Mixed>),
     Affine(video::Control<mode::Affine>),
-}
-impl ControlModes {
-    // TODO: Examine ASM
-    fn enter(self, mode: EnterMode, console: &mut ConsoleState) -> Self {
-        use mode::Mode;
-        fn enter_control_mode<M: Mode>(
-            mode: EnterMode,
-            ctrl: video::Control<M>,
-            console: &mut ConsoleState,
-        ) -> ControlModes {
-            match mode {
-                EnterMode::Text(init) => {
-                    let mut new_mode = ctrl.enter_mode::<mode::Text>();
-                    init(&mut new_mode, console);
-                    ControlModes::Text(new_mode)
-                }
-                EnterMode::Mixed(init) => {
-                    let mut new_mode = ctrl.enter_mode::<mode::Mixed>();
-                    init(&mut new_mode, console);
-                    ControlModes::Mixed(new_mode)
-                }
-                EnterMode::Affine(init) => {
-                    let mut new_mode = ctrl.enter_mode::<mode::Affine>();
-                    init(&mut new_mode, console);
-                    ControlModes::Affine(new_mode)
-                }
-            }
-        }
-        match self {
-            Self::Text(ctrl) => enter_control_mode(mode, ctrl, console),
-            Self::Mixed(ctrl) => enter_control_mode(mode, ctrl, console),
-            Self::Affine(ctrl) => enter_control_mode(mode, ctrl, console),
-        }
-    }
 }
 
 /// Performs a busy loop until vertical blank starts.
@@ -77,6 +80,7 @@ fn spin_until_vdraw() {
     while VCOUNT.read() >= 160 {}
 }
 
+// TODO: input latency is sooooo bad. What's the deal?
 /// Global console state.
 #[derive(ConstDefault)]
 pub struct ConsoleState {
@@ -85,10 +89,7 @@ pub struct ConsoleState {
     /// The button state
     pub input: Input,
     /// The object allocation state.
-    pub objects: object::Allocator,
-    /// If set to `Some` at the end of [`GameState::logic`],
-    /// will switch to provided video mode.
-    pub enter_video_mode: Option<EnterMode>,
+    pub(crate) objects: object::Allocator,
     /// A random number generator.
     /// Just set this with [`Rng::new`] to seed it.
     pub rng: Rng,
@@ -103,7 +104,25 @@ impl ConsoleState {
         let offset = self.frame.wrapping_add_signed(offset);
         (offset % frequency == 0).then(|| f(self));
     }
+    /// Reserve an object slot.
+    /// Returns `None` if no more slots are available.
+    ///
+    /// Make sure to call [`Self::free_object`] before dropping an [`object::Slot`],
+    /// otherwise, the object slot will forever be leaked.
+    #[must_use]
+    pub fn reserve_object(&mut self) -> Option<object::Slot> {
+        self.objects.reserve()
+    }
+    /// Free an object slot, consuming it.
+    pub fn free_object(&mut self, slot: object::Slot) {
+        self.objects.free(slot);
+    }
 }
+
+type GsF<T> = fn(&mut video::Control<mode::Text>, &T, &mut ConsoleState);
+type GsG<T> = fn(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState);
+type GsH<T> = fn(&mut video::Control<mode::Affine>, &T, &mut ConsoleState);
+pub type GameStateEnterMode<T> = EnterMode<T, GsF<T>, GsG<T>, GsH<T>>;
 
 /// The game definition.
 ///
@@ -113,7 +132,7 @@ impl ConsoleState {
 /// be handled (if only to enter a different mode).
 pub trait GameState {
     /// The game logic, updates the state based on input for current frame.
-    fn logic(&mut self, console: &mut ConsoleState);
+    fn logic(&mut self, console: &mut ConsoleState) -> Option<GameStateEnterMode<Self>>;
 
     /// Draw stuff in [`mode::Text`], text mode is the initial video mode.
     ///
@@ -153,12 +172,12 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
     let mut console = ConsoleState::DEFAULT;
     loop {
         console.input.previous = mem::replace(&mut console.input.current, KEYINPUT.read());
-        state.logic(&mut console);
         console.frame = console.frame.wrapping_add(1);
+        let mut enter_video_mode = state.logic(&mut console);
 
         spin_until_vblank();
-        video_control = match console.enter_video_mode.take() {
-            Some(mode) => video_control.enter(mode, &mut console),
+        video_control = match enter_video_mode.take() {
+            Some(mode) => mode.enter(video_control, &state, &mut console),
             None => video_control,
         };
         match &mut video_control {

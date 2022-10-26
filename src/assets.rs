@@ -1,8 +1,8 @@
 //! Embedded game asset definitions.
 
 use gbassets::{image, palette, Cycle, Image, Palette};
-use hal::tileset;
 use hal::video::{colmod, object, Tileset};
+use hal::{sprite, tileset};
 
 /// Asset definitions of the main game graphical elements.
 #[allow(non_upper_case_globals, clippy::wildcard_imports)]
@@ -11,33 +11,6 @@ pub(crate) mod space {
 
     pub(crate) const star_count: usize = 16;
 
-    // TODO: consider using enum-map instead.
-    /// The list of all possible enemy ships.
-    pub(crate) struct Ships<T> {
-        pub(crate) small_blue: T,
-        pub(crate) small_green1: T,
-        pub(crate) small_green2: T,
-        pub(crate) small_green3: T,
-        pub(crate) small_green4: T,
-        pub(crate) medium_blue1: T,
-        pub(crate) medium_blue2: T,
-        pub(crate) medium_green: T,
-        pub(crate) medium_violet1: T,
-        pub(crate) medium_violet2: T,
-        pub(crate) long_green1: T,
-        pub(crate) long_green2: T,
-        pub(crate) big_blue: T,
-        pub(crate) big_green: T,
-        pub(crate) big_violet: T,
-    }
-    /// Enemy ship tile size specification.
-    pub(crate) struct ShipTile(object::Shape);
-    impl ShipTile {
-        const BIG: Self = Self(object::Shape::_4x4);
-        const MED: Self = Self(object::Shape::_2x2);
-        const LONG: Self = Self(object::Shape::_2x1);
-        const SMALL: Self = Self(object::Shape::_1x1);
-    }
     /// The in-game menu tiles.
     pub(crate) const ui: Tileset<colmod::Bit8> = tileset!("gamesetui_til.bin");
     /// The bullet tiles, includes player and enemy bullets.
@@ -58,42 +31,87 @@ pub(crate) mod space {
         // Player bullets
         cycle(26..26 + 6, 8),
     );
-    /// The tiles of all possible enemy ships.
-    pub(crate) const ships: Ships<Tileset<colmod::Bit8>> = Ships {
-        small_blue: tileset!("bigB1_til.bin"),
-        small_green1: tileset!("smallG1_til.bin"),
-        small_green2: tileset!("smallG2_til.bin"),
-        small_green3: tileset!("smallG3_til.bin"),
-        small_green4: tileset!("smallG4_til.bin"),
-        medium_blue1: tileset!("medB1_til.bin"),
-        medium_blue2: tileset!("medB2_til.bin"),
-        medium_green: tileset!("medG1_til.bin"),
-        medium_violet1: tileset!("medV1_til.bin"),
-        medium_violet2: tileset!("medV2_til.bin"),
-        long_green1: tileset!("smlongG1_til.bin"),
-        long_green2: tileset!("smlongG2_til.bin"),
-        big_blue: tileset!("bigB1_til.bin"),
-        big_green: tileset!("bigG1_til.bin"),
-        big_violet: tileset!("bigV1_til.bin"),
-    };
-    /// The sizes of all possible enemy ships.
-    pub(crate) const ship_images: Ships<ShipTile> = Ships {
-        small_blue: ShipTile::SMALL,
-        small_green1: ShipTile::SMALL,
-        small_green2: ShipTile::SMALL,
-        small_green3: ShipTile::SMALL,
-        small_green4: ShipTile::SMALL,
-        medium_blue1: ShipTile::MED,
-        medium_blue2: ShipTile::MED,
-        medium_green: ShipTile::MED,
-        medium_violet1: ShipTile::MED,
-        medium_violet2: ShipTile::MED,
-        long_green1: ShipTile::LONG,
-        long_green2: ShipTile::LONG,
-        big_blue: ShipTile::BIG,
-        big_green: ShipTile::BIG,
-        big_violet: ShipTile::BIG,
-    };
+    #[repr(u8)]
+    pub(crate) enum Ships {
+        SmallBlue,
+        SmallGreen1,
+        SmallGreen2,
+        SmallGreen3,
+        SmallGreen4,
+        MediumBlue1,
+        MediumBlue2,
+        MediumGreen,
+        MediumViolet1,
+        MediumViolet2,
+        LongGreen1,
+        LongGreen2,
+        BigBlue,
+        BigGreen,
+        BigViolet,
+    }
+
+    impl Ships {
+        pub(crate) const fn try_from_u8(value: u8) -> Option<Self> {
+            match value {
+                0 => Some(Self::SmallBlue),
+                1 => Some(Self::SmallGreen1),
+                2 => Some(Self::SmallGreen2),
+                3 => Some(Self::SmallGreen3),
+                4 => Some(Self::SmallGreen4),
+                5 => Some(Self::MediumBlue1),
+                6 => Some(Self::MediumBlue2),
+                7 => Some(Self::MediumGreen),
+                8 => Some(Self::MediumViolet1),
+                9 => Some(Self::MediumViolet2),
+                10 => Some(Self::LongGreen1),
+                11 => Some(Self::LongGreen2),
+                12 => Some(Self::BigBlue),
+                13 => Some(Self::BigGreen),
+                14 => Some(Self::BigViolet),
+                _ => None,
+            }
+        }
+        pub(crate) const fn sprite(self) -> object::Sprite {
+            match self {
+                Self::SmallBlue => ships::small_blue,
+                Self::SmallGreen1 => ships::small_green1,
+                Self::SmallGreen2 => ships::small_green2,
+                Self::SmallGreen3 => ships::small_green3,
+                Self::SmallGreen4 => ships::small_green4,
+                Self::MediumBlue1 => ships::medium_blue1,
+                Self::MediumBlue2 => ships::medium_blue2,
+                Self::MediumGreen => ships::medium_green,
+                Self::MediumViolet1 => ships::medium_violet1,
+                Self::MediumViolet2 => ships::medium_violet2,
+                Self::LongGreen1 => ships::long_green1,
+                Self::LongGreen2 => ships::long_green2,
+                Self::BigBlue => ships::big_blue,
+                Self::BigGreen => ships::big_green,
+                Self::BigViolet => ships::big_violet,
+            }
+        }
+    }
+    /// The sprites of all possible enemy ships.
+    pub(crate) mod ships {
+        use super::*;
+        use object::Shape::{_1x1, _2x1, _2x2, _4x4};
+        use object::Sprite;
+        pub(crate) const small_blue: Sprite = sprite!("bigB1_til.bin", _1x1);
+        pub(crate) const small_green1: Sprite = sprite!("smallG1_til.bin", _1x1);
+        pub(crate) const small_green2: Sprite = sprite!("smallG2_til.bin", _1x1);
+        pub(crate) const small_green3: Sprite = sprite!("smallG3_til.bin", _1x1);
+        pub(crate) const small_green4: Sprite = sprite!("smallG4_til.bin", _1x1);
+        pub(crate) const medium_blue1: Sprite = sprite!("medB1_til.bin", _2x2);
+        pub(crate) const medium_blue2: Sprite = sprite!("medB2_til.bin", _2x2);
+        pub(crate) const medium_green: Sprite = sprite!("medG1_til.bin", _2x2);
+        pub(crate) const medium_violet1: Sprite = sprite!("medV1_til.bin", _2x2);
+        pub(crate) const medium_violet2: Sprite = sprite!("medV2_til.bin", _2x2);
+        pub(crate) const long_green1: Sprite = sprite!("smlongG1_til.bin", _2x1);
+        pub(crate) const long_green2: Sprite = sprite!("smlongG2_til.bin", _2x1);
+        pub(crate) const big_blue: Sprite = sprite!("bigB1_til.bin", _4x4);
+        pub(crate) const big_green: Sprite = sprite!("bigG1_til.bin", _4x4);
+        pub(crate) const big_violet: Sprite = sprite!("bigV1_til.bin", _4x4);
+    }
     // TODO: all the space tileset individual images
     // This is probably worth writting a custom editor for.
     // (I could define them individually like the ships and
@@ -112,7 +130,7 @@ pub(crate) mod players {
 
     /// Tile and palette of playable ship.
     pub(crate) struct Ship {
-        pub(crate) set: Tileset<colmod::Bit8>,
+        pub(crate) sprite: object::Sprite,
         pub(crate) pal: Palette,
     }
     /// The various palettes of player bullets, changing colors
@@ -125,15 +143,15 @@ pub(crate) mod players {
     );
 
     pub(crate) const paladin: Ship = Ship {
-        set: tileset!("paladin_til.bin"),
+        sprite: sprite!("paladin_til.bin", object::Shape::_2x2),
         pal: palette!("paladin_pal.bin"),
     };
     pub(crate) const spear: Ship = Ship {
-        set: tileset!("spear_til.bin"),
+        sprite: sprite!("spear_til.bin", object::Shape::_2x2),
         pal: palette!("spear_pal.bin"),
     };
     pub(crate) const blank: Ship = Ship {
-        set: tileset!("blank_til.bin"),
+        sprite: sprite!("blank_til.bin", object::Shape::_2x2),
         pal: palette!("blank_pal.bin"),
     };
     pub(crate) const bullet_pal: BulletsPalette = BulletsPalette(

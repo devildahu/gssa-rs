@@ -4,7 +4,7 @@ mod cycle;
 use const_default::ConstDefault;
 use gbassets::Image;
 use hal::{
-    exec::{ConsoleState, EnterMode},
+    exec::ConsoleState,
     input::{Dir, Key},
     video::{
         self, mode,
@@ -15,7 +15,7 @@ use hal::{
 
 use crate::{
     assets,
-    game::{cursor::Cursor, space, state::Transition, Ship},
+    game::{cursor::Cursor, state::Transition, Ship},
     layout,
 };
 
@@ -140,13 +140,12 @@ impl Mainmenu {
                     let cursor_pos = self.data.ship_menu.of(self.selected_ship) - Pos::x(1);
                     self.cursor.update(cursor_pos, console);
                 }
-                Submenu::Main(MainEntry::Start) => {
-                    console.enter_video_mode = Some(EnterMode::Affine(space::setup_video));
-                    return Transition::EnterGame(self.selected_ship);
-                }
                 Submenu::ShipSelect { highlight } => {
                     self.selected_ship = highlight;
                     self.just_new_screen = true;
+                }
+                Submenu::Main(MainEntry::Start) => {
+                    return Transition::EnterGame(self.selected_ship);
                 }
             }
         } else if console.input.just_pressed(Key::B) {

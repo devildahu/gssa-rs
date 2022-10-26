@@ -16,8 +16,11 @@ I've updated the project to use a more recent version of rust
 
 Nightly is required for the following:
 
-The `haldvance` and `gbassets` crate requires the `const_mut_refs` as it
-heavily depends on `&mut` in `const fn`s.
+The `haldvance` and `gbassets` crate requires:
+
+- `const_mut_refs` as it heavily depends on `&mut` in `const fn`s.
+- `const_type_id` for `Tileset` unique identifier generation, for the sprite
+  manager (see [docs/Unique-tileset-ids.md] for reasoning)
 
 ### Steps
 
@@ -144,23 +147,30 @@ C version)
 - [X] start game with selected ship
 - [ ] Improve the HAL so that I can implement what the old version used to have
    - [X] Fix include_bytes! alignment for all resource types similarly to palette!
-   - [ ] Add OBJ handling
+   - [X] Add OBJ handling
+   - [X] Implement a sprite allocator for managing object sprite memory
    - [ ] Palette manager
    - [ ] Use interrupts over busy-looping for waiting VBLANK
 - [X] See game background scroll (with visible tearing)
+- [X] See player character (change depending on which selected)
+- [X] Move player character
+- [ ] Player can shoot bullets
+- [ ] random drop allowing to change weapon
+- [ ] random drops allowing to restore health
+- [ ] Spawn Random enemies
+- [ ] Spawn enemies by wave
 - [ ] Cycle palette to give a shimering effect to bullets and background stars
 - [ ] Pause and resume the game (allowing to move the "pause menu" message)
 - [ ] spawn multiple waves of enemies on a timer, shooting bullets at player
 - [ ] enemy AI capable of moving in set patterns, aiming and dodging the player
 - [ ] being hit by enemy bullets and ships, lowering health and power level
       (the two being the same)
-- [ ] random drops allowing to restore health
-- [ ] random drop allowing to change weapon
 - [ ] Complete console lockup with a blue screen saying "you ded" when game over
 
 Following are probably never going to happen, but are long term potential
 developpment for the game.
 
+- [ ] Consider using `static` instead of `const` for assets.
 - [ ] Consider switching back to a flow-driven architecture, this avoids the
       constant diffing, since we do not "erase" the execution state.
 - [ ] Conditionally compile the rust-console/gba debugging facilities to elide
@@ -170,7 +180,10 @@ developpment for the game.
 - [ ] Setup <https://github.com/Technolution/rustig> or <https://github.com/viperproject/prusti-dev>
       for panic checking and other static analysis functionalities
 - [ ] Improve the HAL so that it's possible to make a fully-featured game
-   - [ ] Allow switching video mode in exec::GameState
+   - [ ] Split implementation of `Image` between `Affine`/`Object` and `Text`,
+     so that the image has a `const` representation equal to the value that will
+     be uploaded to VRAM.
+   - [X] Allow switching video mode in exec::GameState
    - [ ] proc/simple macro for generating _1, _2 etc. for typesafe registry values.
    - [ ] Tooling to generate 4bpp and 8bpp tilemaps and declare rust structs
          for image layouts, integrate palette management into asset pipeline
@@ -179,7 +192,7 @@ developpment for the game.
          checking overhead
    - [ ] Potentially redesign the video HAL to minimize memory access, and add
          visibility into usage overhead.
-   - [ ] Implement an audio layer HAL
+   - [ ] Implement an audio layer HAL <https://maxmod.devkitpro.org/> <https://rentry.org/beepbox-gba-music>
    - [ ] Split GBA structs from other GBA stuff, for tooling development
 - [ ] Use optimized memcpy intrisicts <https://hackmd.io/snq80PgDTPGeC4uzFg66Pw?view>
       and see agb impl: <https://github.com/agbrs/agb/tree/master/agb/src/agbabi>

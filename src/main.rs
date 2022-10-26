@@ -3,7 +3,6 @@
 #![no_main]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::redundant_pub_crate)]
-// mixed_integer_ops: going to stabilize something like next week
 #![feature(const_mut_refs, const_replace)]
 
 mod assets;
@@ -11,7 +10,7 @@ mod game;
 mod text;
 
 use const_default::ConstDefault;
-use hal::exec::{full_game, panic_handler, GameState};
+use hal::exec::{full_game, panic_handler, EnterMode, GameState, GameStateEnterMode};
 use hal::{
     exec::ConsoleState,
     video::{
@@ -23,7 +22,6 @@ use hal::{
 
 use game::{
     mainmenu::{Mainmenu, TITLE_SCREEN_SBB},
-    space,
     state::Transition,
 };
 
@@ -41,20 +39,28 @@ struct State {
     screen: Screen,
 }
 impl GameState for State {
-    fn logic(&mut self, console: &mut ConsoleState) {
+    fn logic(&mut self, console: &mut ConsoleState) -> Option<GameStateEnterMode<Self>> {
         match &mut self.screen {
             Screen::Mainmenu(mainmenu) => {
                 let result = mainmenu.logic(console);
                 if let Transition::EnterGame(ship) = result {
                     // TODO: unwrap
-                    let slot = console.objects.reserve().unwrap();
+                    let slot = console.reserve_object().unwrap();
                     self.screen = Screen::Space(game::Space::start(ship, slot));
+                    let setup_video =
+                        |ctrl: &mut video::Control<_>, state: &Self, console: &mut ConsoleState| {
+                            if let Self { screen: Screen::Space(space) } = state {
+                                space.setup_video(ctrl, console);
+                            }
+                        };
+                    return Some(EnterMode::Affine(setup_video));
                 };
             }
-            Screen::Space(ship) => {
-                space::logic(console);
+            Screen::Space(space) => {
+                space.logic(console);
             }
         }
+        None
     }
 
     fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Text>) {
@@ -63,8 +69,8 @@ impl GameState for State {
         }
     }
     fn affine_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
-        if let Screen::Space(_) = &self.screen {
-            space::affine_draw(console, ctrl);
+        if let Screen::Space(space) = &self.screen {
+            space.affine_draw(console, ctrl);
         }
     }
 }

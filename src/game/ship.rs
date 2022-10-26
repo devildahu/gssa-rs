@@ -1,4 +1,11 @@
-use hal::video::{object, Pos};
+use hal::{
+    exec::ConsoleState,
+    input::{Dir, Key},
+    video::{self, mode, object, Pos},
+    Input,
+};
+
+use crate::assets::players;
 
 const INITIAL_PLAYER_POS: Pos = Pos { x: 4, y: 52 };
 
@@ -8,6 +15,15 @@ crate::cycling_enum! {
         Blank,
         Spear,
         Paladin,
+    }
+}
+impl Ship {
+    pub(crate) const fn asset(self) -> players::Ship {
+        match self {
+            Self::Blank => players::blank,
+            Self::Spear => players::spear,
+            Self::Paladin => players::paladin,
+        }
     }
 }
 
@@ -34,7 +50,7 @@ pub(super) struct Player {
     last_hit_frame: usize,
     weapon: Weapon,
     life: HitPoints,
-    slot: object::Slot,
+    pub(super) slot: object::Slot,
 }
 impl Player {
     pub(super) const fn new(slot: object::Slot, ship: Ship) -> Self {
@@ -51,5 +67,16 @@ impl Player {
             life,
             slot,
         }
+    }
+    pub(crate) fn update(&mut self, input: Input) {
+        use Dir::{Down, Left, Right, Up};
+        let pressed_dir = |dir, value| if input.pressed(Key::Dpad(dir)) { value } else { 0 };
+        self.pos.y += pressed_dir(Down, 1) - pressed_dir(Up, 1);
+        self.pos.x += pressed_dir(Right, 1) - pressed_dir(Left, 1);
+    }
+
+    pub(crate) fn draw(&self, ctrl: &mut video::Control<mode::Affine>) {
+        let mut player = ctrl.object(&self.slot);
+        player.set_pos(self.pos);
     }
 }

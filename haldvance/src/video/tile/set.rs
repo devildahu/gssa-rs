@@ -5,6 +5,7 @@ use crate::video::colmod::ColorMode;
 #[doc(hidden)]
 pub use include_const_aligned as align;
 
+// TODO: consider transmutting to u32 rather, double load performances most likely.
 /// A set of tiles for text mode.
 ///
 /// This is the raw data, not the tiles as represented by `Image`.
@@ -14,6 +15,7 @@ pub struct Tileset<M: ColorMode> {
     data: &'static [u16],
     _m: PhantomData<fn() -> M>,
 }
+
 impl<M: ColorMode> Tileset<M> {
     /// INTERNAL USE ONLY.
     ///

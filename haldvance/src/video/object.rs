@@ -6,38 +6,65 @@
 //! There is a total of `128` [`Slot`]s for objects, and they may be controlled
 //! through their [`Handle`], accessed through the [`video::Control::object`]
 //! method.
+//!
+//! Getting an object is a bit involved, so here is a step-by step API usage
+//! guide:
+//!
+//! - Define a sprite with the [`crate::sprite!`] macro.
+//! - Load your sprite to video memory using
+//!   [`video::Control::load_object_spirte`] to get a [`Sprite`].
+//! - Allocate an object [`Slot`] with [`ConsoleState::reserve_object`].
+//! - Get a [`Handle`] for the [`Slot`] using [`video::Control::object`].
+//! - Use methods on [`Handle`] to manipulate object on screen.
+//! - For the life time of the object, keep the [`Slot`] in your game state.
+//! - Once the object dies, you should free the slot using [`ConsoleState::free_object`].
+//!
+//! You should store the [`Slot`] and [`Sprite`] in some runtime struct for the
+//! lifetime of the object, **and make sure to free them** with [`ConsoleState::free_object`]
+//! and [`video::Control::free_sprite`] methods on the [`ConsoleState::objects`] field!
+//!
+//! Note that the max number of tiles (multiply the two values of the [`Shape`]
+//! constants) loadable at the same time is `1024`, but may be limited in
+//! those conditions:
+//!
+//! - If the specific object's [`Handle::set_palette_mode`] is **not**
+//!   [`palette::Type::Bank`], then odd-numbered tile numbers are invalid.
+//! - If in a bitmap [`video::Mode`], then only tiles in [512..1024] are valid.
+//! - If both conditions apply, then only even-numbered tiles in [512..1024]
+//!   are valid.
+
+pub mod sprite;
+
 use core::mem;
 
 use const_default::ConstDefault;
 use gba::mmio_types::{ObjAttr0, ObjAttr1, ObjAttr2};
-use volmatrix::rw::VolAddress;
+use volmatrix::rw::{VolAddress, VolBlock};
 
 use crate::bitset::Bitset128;
+use crate::block::Blocks;
 use crate::sane_assert;
-use crate::video::{self, palette, Priority};
+use crate::video::{self, palette, Pos, Priority};
 
-/// A tile ID for object definitions.
-///
-/// Is in [0..1024], but may be limited following those conditions:
-///
-/// - If the specific object's [`Handle::set_palette_mode`] is **not**
-///   [`palette::Type::Bank`], then odd-numbered tile numbers are invalid.
-/// - If in a bitmap [`video::Mode`], then only tiles in [512..1024] are valid.
-/// - If both conditions apply, then only even-numbered tiles in [512..1024]
-///   are valid.
-#[derive(Clone, Copy)]
-pub struct Tile(u16);
-impl Tile {
-    #[must_use]
-    pub const fn get(self) -> u16 {
-        self.0
-    }
-    pub(crate) const fn new(inner: u16) -> Self {
-        Self(inner)
-    }
-}
+#[cfg(doc)]
+use crate::exec::ConsoleState;
+
+pub use sprite::Sprite;
+
+const OBJ_COUNT: usize = 128;
+const OBJ_ADDR_USIZE: usize = 0x0700_0000;
+const OBJ_SPRITE_ADDR_USIZE: usize = 0x0601_0000;
+const SPRITE_FULL_SIZE: u16 = 1024;
+const SPRITE_MAX_BLOCKS: usize = SPRITE_FULL_SIZE as usize / 2;
+
+// TODO: bump by 512 in bitmap modes
+
+// SAFETY: this OBJ_SPRITE is indeed inside VRAM.
+pub(super) const OBJ_SPRITE: VolBlock<sprite::Entry, { 0x8000 / mem::size_of::<sprite::Entry>() }> =
+    unsafe { VolBlock::new(OBJ_SPRITE_ADDR_USIZE) };
 
 /// The layout in memory of tiles used by objects.
+///
 /// Set this using [`video::Control::set_object_tile_mapping`].
 #[derive(Clone, Copy)]
 pub enum TileMapping {
@@ -71,46 +98,62 @@ enum ShapeSize {
     Octo,
 }
 
-macro_rules! impl_shape_consts {
-    (
-        dir: [$($_:tt)*],
-        $($size:ident : [ $squ_dir:ident, $hor_dir:ident, $ver_dir:ident ],)*
-     ) => {
-        $(
-            impl_shape_consts!(@singular Square, $size, $squ_dir);
-            impl_shape_consts!(@singular Horizontal, $size, $hor_dir);
-            impl_shape_consts!(@singular Vertical, $size, $ver_dir);
-        )*
-    };
-    (@singular $direction:ident, $size:ident, $const_name:ident) => {
-        /// An object of `
-        #[doc = stringify!($const_name)]
-        /// ` tiles.
-        pub const $const_name: Self = Self {
-            direction: ShapeDir::$direction,
-            size: ShapeSize::$size,
-        };
-    };
-}
 /// The shape of an object.
 #[derive(Clone, Copy)]
-pub struct Shape {
-    direction: ShapeDir,
-    size: ShapeSize,
+pub enum Shape {
+    _1x1,
+    _2x2,
+    _4x4,
+    _8x8,
+    _2x1,
+    _4x1,
+    _4x2,
+    _8x4,
+    _1x2,
+    _1x4,
+    _2x4,
+    _4x8,
 }
-// allow: for the consts
-#[allow(non_upper_case_globals)]
 impl Shape {
-    fn set_attributes(self, attributes: &mut Attributes) {
-        attributes.attr0.set_obj_mode(self.direction as u16);
-        attributes.attr1.set_obj_size(self.size as u16);
+    const fn components(self) -> (ShapeDir, ShapeSize) {
+        use ShapeDir::{Horizontal, Square, Vertical};
+        use ShapeSize::{Double, Octo, Quad, Simple};
+        match self {
+            Self::_1x1 => (Square, Simple),
+            Self::_2x2 => (Square, Double),
+            Self::_4x4 => (Square, Quad),
+            Self::_8x8 => (Square, Octo),
+            Self::_2x1 => (Horizontal, Simple),
+            Self::_4x1 => (Horizontal, Double),
+            Self::_4x2 => (Horizontal, Quad),
+            Self::_8x4 => (Horizontal, Octo),
+            Self::_1x2 => (Vertical, Simple),
+            Self::_1x4 => (Vertical, Double),
+            Self::_2x4 => (Vertical, Quad),
+            Self::_4x8 => (Vertical, Octo),
+        }
     }
-    impl_shape_consts! {
-        dir:    [Square, Horizontal, Vertical],
-        Simple: [  _1x1,       _2x1,     _1x2],
-        Double: [  _2x2,       _4x1,     _1x4],
-        Quad:   [  _4x4,       _4x2,     _2x4],
-        Octo:   [  _8x8,       _8x4,     _4x8],
+    const fn tile_count(self) -> u16 {
+        #[allow(clippy::match_same_arms, clippy::identity_op)]
+        match self {
+            Self::_1x1 => 1 * 1,
+            Self::_2x2 => 2 * 2,
+            Self::_4x4 => 4 * 4,
+            Self::_8x8 => 8 * 8,
+            Self::_2x1 => 2 * 1,
+            Self::_4x1 => 4 * 1,
+            Self::_4x2 => 4 * 2,
+            Self::_8x4 => 8 * 4,
+            Self::_1x2 => 1 * 2,
+            Self::_1x4 => 1 * 4,
+            Self::_2x4 => 2 * 4,
+            Self::_4x8 => 4 * 8,
+        }
+    }
+    fn set_attributes(self, attributes: &mut Attributes) {
+        let (direction, size) = self.components();
+        attributes.attr0.set_obj_mode(direction as u16);
+        attributes.attr1.set_obj_size(size as u16);
     }
 }
 
@@ -131,14 +174,13 @@ struct Attributes {
     attr2: ObjAttr2,
 }
 
-const OBJ_COUNT: usize = 128;
-const OBJ_ADDR_USIZE: usize = 0x0700_0000;
-
 /// An object slot.
 ///
 /// You must use [`Allocator::reserve`] to get a `Slot`, to pass it to
 /// [`video::Control::object`] to get a [`Handle`] to be able to draw objects
 /// on screen. (See [`Handle`] for details)
+///
+/// See [`self`] module doc for how to use objects.
 pub struct Slot(u32);
 impl Slot {
     // allow: We assume here we will compile for the GBA only, and it's really
@@ -155,7 +197,7 @@ impl Slot {
     }
 
     const fn register(&self) -> VolAddress<Attributes> {
-        // SAFETY: `self.0` is by definition lower than Self::MAX_BLOCKS,
+        // SAFETY: `self.objects` is by definition lower than Self::MAX_BLOCKS,
         // which is the size of OBJ_ARRAY, meaning that `.get` returns always a `Some`.
         let offset = mem::size_of::<[u16; 4]>() * self.0 as usize;
         unsafe { VolAddress::new(OBJ_ADDR_USIZE + offset) }
@@ -173,6 +215,8 @@ impl Slot {
 /// To get an `object::Handle`, use [`video::Control::object`].
 /// Note that the changes are only effective when the handle is dropped,
 /// to avoid extraneous memory reads/writes.
+///
+/// See [`self`] module doc for how to use objects.
 pub struct Handle<'a> {
     value: Attributes,
     register: VolAddress<Attributes>,
@@ -187,6 +231,11 @@ impl<'a> Handle<'a> {
             register,
         }
     }
+    /// Set `x` and `y` coordinate of object.
+    pub fn set_pos(&mut self, pos: Pos) {
+        self.set_x(pos.x);
+        self.set_y(pos.y);
+    }
     /// Set `x` coordinate of object.
     pub fn set_x(&mut self, x: u16) {
         self.value.attr1.set_x_pos(x);
@@ -199,6 +248,9 @@ impl<'a> Handle<'a> {
     pub fn set_shape(&mut self, shape: Shape) {
         shape.set_attributes(&mut self.value);
     }
+    pub fn set_visible(&mut self, visible: bool) {
+        self.value.attr0.set_double_disabled(!visible);
+    }
     pub fn set_priority(&mut self, priority: Priority) {
         self.value.attr2.set_priority(priority as u16);
     }
@@ -208,7 +260,7 @@ impl<'a> Handle<'a> {
     pub fn set_mosaic(&mut self, is_mosaic: bool) {
         self.value.attr0.set_mosaic(is_mosaic);
     }
-    /// Set tile used by object.
+    /// Set sprite used by object.
     ///
     /// # Panics
     ///
@@ -216,17 +268,19 @@ impl<'a> Handle<'a> {
     /// If `self.palette_mode() == palette::Type::Full && tile.get() % 2 == 1`
     ///
     /// Without `sane_assert`, odd tiles won't have effect with a full palette mode.
-    pub fn set_tile(&mut self, tile: Tile) {
+    pub fn set_sprite(&mut self, sprite: sprite::Slot) {
         sane_assert!(!self.value.attr0.use_palbank() && tile.0 % 2 == 0);
-        self.value.attr2.set_tile_index(tile.0);
+        self.value.attr0.set_use_palbank(true);
+        self.value.attr2.set_tile_index(sprite.offset);
     }
     /// Set palette mode used by object.
     ///
     /// Note that if not set to [`palette::Type::Bank`],
-    /// [`Self::set_tile`] will only accept even numbered tiles.
+    /// [`Self::set_sprite`] will only accept even numbered tiles.
     pub fn set_palette_mode(&mut self, kind: palette::Type) {
         let use_palbank = matches!(kind, palette::Type::Bank);
-        self.value.attr0.set_use_palbank(use_palbank);
+        // TODO: the method in rust-console/gba is just wrongly named
+        self.value.attr0.set_use_palbank(!use_palbank);
     }
     /// Execute changes specified in this handle.
     pub fn commit(&mut self) {
@@ -244,11 +298,21 @@ impl<'a> Drop for Handle<'a> {
 /// A generic allocator of exactly 128 items.
 ///
 /// This is a 0-d allocator, ie: each allocated item are atoms of identical size.
-#[derive(ConstDefault)]
-pub struct Allocator(Bitset128);
+///
+/// See [`self`] module doc for how to use objects.
+pub struct Allocator {
+    objects: Bitset128,
+    sprites: Blocks<sprite::Id, SPRITE_MAX_BLOCKS>,
+}
+impl ConstDefault for Allocator {
+    const DEFAULT: Self = Self {
+        objects: Bitset128::DEFAULT,
+        sprites: Blocks::new(SPRITE_FULL_SIZE),
+    };
+}
 impl Allocator {
     // allow: the `assert!(free<128)` should ALWAYS be true, due to a check in
-    // `self.0.first_free`.
+    // `self.objects.first_free`.
     /// Reserve an object slot.
     /// Returns `None` if no more slots are available.
     ///
@@ -257,8 +321,8 @@ impl Allocator {
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
     pub fn reserve(&mut self) -> Option<Slot> {
-        let free = self.0.first_free()?;
-        self.0.reserve(free);
+        let free = self.objects.first_free()?;
+        self.objects.reserve(free);
         assert!(free < 128);
         // SAFETY: `free` is always in 0..128.
         Some(unsafe { Slot::new_unchecked(free) })
@@ -268,6 +332,37 @@ impl Allocator {
     /// Free an object slot, consuming it.
     #[allow(clippy::needless_pass_by_value)]
     pub fn free(&mut self, slot: Slot) {
-        self.0.free(slot.0);
+        self.objects.free(slot.0);
+    }
+
+    /// Reserve an object slot.
+    /// Returns `None` if no more slots are available.
+    /// Returns existing index if `id` is already allocated.
+    ///
+    /// Make sure to call [`Allocator::free`] before dropping a [`Slot`],
+    /// otherwise, the object slot will forever be leaked.
+    #[must_use]
+    pub(crate) fn reserve_sprite(&mut self, sprite: &Sprite) -> Option<sprite::Slot> {
+        let shape = sprite.shape;
+        let id = sprite.id;
+        let free = self.sprites.insert_sized(id, shape.tile_count())?;
+        // SAFETY: We assume that `Blocks::insert_size` implementation is correct,
+        // and therefore will never allocate something outside of the provided
+        // SPRITE_FULL_SIZE, which is 1024.
+        Some(unsafe { sprite::Slot::new_unchecked(free) })
+    }
+    /// Remove spirte.
+    #[allow(clippy::needless_pass_by_value)]
+    pub(crate) fn free_sprite(&mut self, id: sprite::Id) -> bool {
+        self.sprites.remove(id)
+    }
+    /// Replace spirte.
+    pub(crate) fn replace_sprite(&mut self, old: sprite::Id, new: &Sprite) -> Option<sprite::Slot> {
+        let Sprite { shape, id, .. } = new;
+        self.sprites
+            .replace_id(old, *id, shape.tile_count())
+            // SAFETY: We assume that `Blocks::replace_id` implementation is correct,
+            // and therefore an existing offset will always be bellow SPRITE_FULL_SIZE.
+            .map(|offset| unsafe { sprite::Slot::new_unchecked(offset) })
     }
 }

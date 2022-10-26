@@ -14,13 +14,10 @@ use volmatrix::{
     VolMemcopy,
 };
 
-use crate::{
-    sane_assert,
-    video::{
-        self, colmod,
-        mode::{self, Affine, Mixed, Text},
-        object, palette,
-    },
+use crate::video::{
+    self, colmod,
+    mode::{self, Affine, Mixed, Text},
+    palette,
 };
 
 #[cfg(doc)]
@@ -213,15 +210,5 @@ impl<M: mode::Tile> video::Control<M> {
     /// Load a palette to the background palette memory.
     pub fn load_palette(&mut self, palette: &[Color]) {
         BG_PALRAM.write_slice(palette);
-    }
-    /// Return a [`object::Tile`] to use with [`object::Handle::set_tile`].
-    ///
-    /// # Panics (`sane_assert`)
-    ///
-    /// If `index >= 1024`.
-    #[must_use]
-    pub const fn object_tile(&self, index: u16) -> object::Tile {
-        sane_assert!(index < 1024);
-        object::Tile::new(index)
     }
 }

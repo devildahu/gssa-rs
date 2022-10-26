@@ -7,10 +7,12 @@
 #![no_std]
 #![warn(clippy::pedantic, clippy::nursery)]
 #![allow(clippy::redundant_pub_crate)]
-#![feature(const_mut_refs)]
+#![feature(const_mut_refs, const_type_id)]
 
 mod bitset;
+mod block;
 mod planckrand;
+mod unique_id;
 
 pub mod exec;
 pub mod input;
@@ -20,3 +22,4 @@ pub mod video;
 
 pub use gba::bios;
 pub use input::Input;
+pub use unique_id::UniqueId;
