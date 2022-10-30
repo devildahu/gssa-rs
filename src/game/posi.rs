@@ -34,6 +34,11 @@ impl From<Pos> for Posi {
         Self { y: y as i32, x: x as i32 }
     }
 }
+impl From<Posi> for Pos {
+    fn from(Posi { x, y }: Posi) -> Self {
+        Self { y: y as u16, x: x as u16 }
+    }
+}
 impl ops::AddAssign for Posi {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;

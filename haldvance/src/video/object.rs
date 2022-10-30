@@ -1,4 +1,4 @@
-//! Deal with GBA objects.
+//! Deal with moving sprites.
 //!
 //! Objects are entities moving independently from the tileset background grid.
 //! Furthermore, they may be accessed in the bitmap [`video::Mode`]s.
@@ -12,16 +12,20 @@
 //!
 //! - Define a sprite with the [`crate::sprite!`] macro.
 //! - Load your sprite to video memory using
-//!   [`video::Control::load_object_spirte`] to get a [`Sprite`].
+//!   [`video::Control::load_spirte`] to get a [`Sprite`].
 //! - Allocate an object [`Slot`] with [`ConsoleState::reserve_object`].
 //! - Get a [`Handle`] for the [`Slot`] using [`video::Control::object`].
 //! - Use methods on [`Handle`] to manipulate object on screen.
 //! - For the life time of the object, keep the [`Slot`] in your game state.
 //! - Once the object dies, you should free the slot using [`ConsoleState::free_object`].
 //!
-//! You should store the [`Slot`] and [`Sprite`] in some runtime struct for the
-//! lifetime of the object, **and make sure to free them** with [`ConsoleState::free_object`]
-//! and [`video::Control::free_sprite`] methods on the [`ConsoleState::objects`] field!
+//! You should store the [`Slot`] in some runtime struct for the lifetime of the object,
+//! **and make sure to free it** with [`ConsoleState::free_object`].
+//!
+//! [`Sprite`] can be handled differently from [`Slot`]. When you define a `Sprite`
+//! using the [`crate::sprite!`] macro, a unique identifier is assigned to it, you
+//! should be able to chose when to unload it to leave room for other [`Sprite`]
+//! with [`video::Control::unload_sprite`].
 //!
 //! Note that the max number of tiles (multiply the two values of the [`Shape`]
 //! constants) loadable at the same time is `1024`, but may be limited in
@@ -176,7 +180,7 @@ struct Attributes {
 
 /// An object slot.
 ///
-/// You must use [`Allocator::reserve`] to get a `Slot`, to pass it to
+/// You must use [`ConsoleState::reserve_object`] to get a `Slot`, to pass it to
 /// [`video::Control::object`] to get a [`Handle`] to be able to draw objects
 /// on screen. (See [`Handle`] for details)
 ///
@@ -335,12 +339,13 @@ impl Allocator {
         self.objects.free(slot.0);
     }
 
-    /// Reserve an object slot.
-    /// Returns `None` if no more slots are available.
+    /// Reserve a sprite.
+    /// Returns `None` if all sprite tiles are allocated.
     /// Returns existing index if `id` is already allocated.
     ///
-    /// Make sure to call [`Allocator::free`] before dropping a [`Slot`],
-    /// otherwise, the object slot will forever be leaked.
+    /// This should be used in combination with [`video::Control::load_sprite`]
+    /// in order to make sense. [`video::Control::unload_sprite`] should be used
+    /// with [`Self::free_sprite`]
     #[must_use]
     pub(crate) fn reserve_sprite(&mut self, sprite: &Sprite) -> Option<sprite::Slot> {
         let shape = sprite.shape;
@@ -351,12 +356,12 @@ impl Allocator {
         // SPRITE_FULL_SIZE, which is 1024.
         Some(unsafe { sprite::Slot::new_unchecked(free) })
     }
-    /// Remove spirte.
+    /// Remove sprite.
     #[allow(clippy::needless_pass_by_value)]
     pub(crate) fn free_sprite(&mut self, id: sprite::Id) -> bool {
         self.sprites.remove(id)
     }
-    /// Replace spirte.
+    /// Replace sprite.
     pub(crate) fn replace_sprite(&mut self, old: sprite::Id, new: &Sprite) -> Option<sprite::Slot> {
         let Sprite { shape, id, .. } = new;
         self.sprites

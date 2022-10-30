@@ -1,4 +1,4 @@
-//! Deal with GBA palettes.
+//! Deal with sprite and background colors.
 use gba::mmio_types::Color;
 
 #[cfg(doc)]

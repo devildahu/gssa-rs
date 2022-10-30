@@ -31,6 +31,9 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 }
 
 // TODO: devildahu logo + rust logo
+// allow: We assume there is exactly a single instance of `Screen` avaiable
+// at the same time.
+#[allow(clippy::large_enum_variant)]
 enum Screen {
     Mainmenu(Mainmenu),
     Space(game::Space),

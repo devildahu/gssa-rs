@@ -154,7 +154,7 @@ C version)
 - [X] See game background scroll (with visible tearing)
 - [X] See player character (change depending on which selected)
 - [X] Move player character
-- [ ] Player can shoot bullets
+- [X] Player can shoot bullets
 - [ ] random drop allowing to change weapon
 - [ ] random drops allowing to restore health
 - [ ] Spawn Random enemies

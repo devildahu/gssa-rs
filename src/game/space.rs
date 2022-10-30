@@ -9,29 +9,31 @@ mod enemy;
 use hal::{
     exec::ConsoleState,
     video::{
-        self, colmod, mode, object, tile::cbb, tile::layer::affine, tile::map::AffineSize, Layer,
-        Priority,
+        self, colmod, mode, object, object::sprite, tile::cbb, tile::layer::affine,
+        tile::map::AffineSize, Layer, Priority,
     },
 };
 
 use super::{state::Transition, Player, Ship, PLANET_SBB, STAR_SBB};
 use crate::assets;
-use bullet::Bullet;
+pub(crate) use bullet::Bullet;
 
 const MAX_BULLETS: usize = 88;
 
 pub(crate) struct Space {
     player: Player,
     bullets: ArrayVec<Bullet, MAX_BULLETS>,
+    bullet_sprite: sprite::Slot,
     ship: Ship,
 }
 
 impl Space {
     pub(crate) fn update(&mut self, console: &mut ConsoleState) -> Transition {
-        self.player.update(console.input);
+        self.player.update(console);
         self.bullets.retain(|bullet| {
             bullet.update(console.frame);
             !bullet.should_die(console.frame)
+            // TODO: do not leak the object slots, using a mutex on drop
         });
         Transition::Stay
     }
@@ -53,11 +55,17 @@ impl Space {
         mem::drop(layer);
 
         self.player.draw(ctrl);
+        self.bullets.iter().for_each(|bullet| bullet.draw(ctrl));
     }
-    pub(crate) const fn start(selected_ship: Ship, slot: object::Slot) -> Self {
+    pub(crate) const fn start(
+        selected_ship: Ship,
+        player_slot: object::Slot,
+        bullet_sprite: sprite::Slot,
+    ) -> Self {
         Self {
-            player: Player::new(slot, selected_ship),
+            player: Player::new(player_slot, selected_ship),
             bullets: ArrayVec::new_const(),
+            bullet_sprite,
             ship: selected_ship,
         }
     }

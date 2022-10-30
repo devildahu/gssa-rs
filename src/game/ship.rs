@@ -1,10 +1,11 @@
 // TODO: rename this to "player.rs"
 use hal::{
     exec::ConsoleState,
+    input::Key,
     video::{self, mode, object, palette, Pos},
-    Input,
 };
 
+use crate::game::space::Bullet;
 use crate::{assets::players, game::Posi};
 
 const INITIAL_PLAYER_POS: Pos = Pos { x: 4, y: 52 };
@@ -42,12 +43,22 @@ pub(super) enum Weapon {
     Momentum,
     Charge,
 }
+impl Weapon {
+    const fn cooldown(self) -> usize {
+        match self {
+            Self::Standard => 32,
+            Self::Double => 45,
+            Self::Momentum => 20,
+            Self::Charge => 50,
+        }
+    }
+}
 pub(super) struct Player {
     pub(super) pos: Pos,
     /// Last time player fired (for cooldown).
-    last_fire_frame: usize,
+    next_fire_frame: usize,
     /// Last time the player was hit (for iframes).
-    last_hit_frame: usize,
+    next_hit_frame: usize,
     pub(super) weapon: Weapon,
     life: HitPoints,
     slot: object::Slot,
@@ -69,16 +80,26 @@ impl Player {
         };
         Self {
             pos: INITIAL_PLAYER_POS,
-            last_fire_frame: 0,
-            last_hit_frame: 0,
+            next_fire_frame: 0,
+            next_hit_frame: 0,
             weapon,
             life,
             slot,
         }
     }
-    pub(crate) fn update(&mut self, input: Input) {
-        let move_dir: Posi = input.current().into();
-        self.pos = self.pos + move_dir;
+    pub(crate) fn update(&mut self, console: &mut ConsoleState) -> Option<Bullet> {
+        let input = console.input;
+        let frame = console.frame;
+        let momentum: Posi = input.current().into();
+        self.pos = self.pos + momentum;
+        if input.pressed(Key::A) && self.next_fire_frame > frame {
+            let slot = console.reserve_object()?;
+            self.next_fire_frame = frame + self.weapon.cooldown();
+
+            Some(Bullet::new_from_player(self, frame, momentum, slot))
+        } else {
+            None
+        }
     }
 
     pub(crate) fn draw(&self, ctrl: &mut video::Control<mode::Affine>) {
