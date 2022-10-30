@@ -1,50 +1,38 @@
 use core::mem;
 
+use arrayvec::ArrayVec;
+
 mod background;
+mod bullet;
 mod enemy;
 
 use hal::{
     exec::ConsoleState,
     video::{
-        self, colmod, mode, object, palette, tile::cbb, tile::layer::affine, tile::map::AffineSize,
-        Layer, Priority,
+        self, colmod, mode, object, tile::cbb, tile::layer::affine, tile::map::AffineSize, Layer,
+        Priority,
     },
 };
 
 use super::{state::Transition, Player, Ship, PLANET_SBB, STAR_SBB};
 use crate::assets;
+use bullet::Bullet;
+
+const MAX_BULLETS: usize = 88;
 
 pub(crate) struct Space {
     player: Player,
+    bullets: ArrayVec<Bullet, MAX_BULLETS>,
     ship: Ship,
-}
-fn set_object(
-    ctrl: &mut video::Control<mode::Affine>,
-    console: &mut ConsoleState,
-    ship: &assets::players::Ship,
-    slot: &object::Slot,
-) {
-    ctrl.load_object_palette(0, ship.pal.get());
-    #[allow(clippy::option_if_let_else)]
-    match ctrl.load_sprite(console, &ship.sprite) {
-        None => {
-            hal::error!("Couldn't load the player sprite");
-        }
-        Some(sprite) => {
-            let mut player_object = ctrl.object(slot);
-            player_object.set_sprite(sprite);
-            player_object.set_shape(*ship.sprite.shape());
-            player_object.set_palette_mode(palette::Type::Full);
-            player_object.set_visible(true);
-            player_object.set_x(10);
-            player_object.set_y(20);
-        }
-    }
 }
 
 impl Space {
-    pub(crate) fn logic(&mut self, console: &mut ConsoleState) -> Transition {
+    pub(crate) fn update(&mut self, console: &mut ConsoleState) -> Transition {
         self.player.update(console.input);
+        self.bullets.retain(|bullet| {
+            bullet.update(console.frame);
+            !bullet.should_die(console.frame)
+        });
         Transition::Stay
     }
 
@@ -69,6 +57,7 @@ impl Space {
     pub(crate) const fn start(selected_ship: Ship, slot: object::Slot) -> Self {
         Self {
             player: Player::new(slot, selected_ship),
+            bullets: ArrayVec::new_const(),
             ship: selected_ship,
         }
     }
@@ -97,7 +86,7 @@ impl Space {
         mem::drop(layer);
 
         let ship = self.ship.asset();
-        set_object(ctrl, console, &ship, &self.player.slot);
+        self.player.init_video(ctrl, console, &ship);
 
         let rng = &mut console.rng;
         background::generate_stars(rng, ctrl.sbb(STAR_SBB, background_size));

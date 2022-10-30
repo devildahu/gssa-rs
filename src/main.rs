@@ -57,7 +57,7 @@ impl GameState for State {
                 };
             }
             Screen::Space(space) => {
-                space.logic(console);
+                space.update(console);
             }
         }
         None

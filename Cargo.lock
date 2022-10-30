@@ -51,6 +51,7 @@ dependencies = [
 name = "gssa-rust"
 version = "0.1.0"
 dependencies = [
+ "arrayvec",
  "const-default",
  "gbassets",
  "haldvance",

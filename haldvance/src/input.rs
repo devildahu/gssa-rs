@@ -32,6 +32,10 @@ impl Keys {
         // bit=0 means it's pressed
         keys.0 & self.0 == 0
     }
+    #[must_use]
+    pub const fn pressed(self, key: Key) -> bool {
+        key.0 & self.0 == 0
+    }
 }
 
 /// A direction, usually DPAD
@@ -120,6 +124,10 @@ pub struct Input {
     pub(crate) previous: Keys,
 }
 impl Input {
+    #[must_use]
+    pub const fn current(self) -> Keys {
+        self.current
+    }
     // TODO: optimization
     #[must_use]
     pub fn direction(self) -> Option<Dir> {
