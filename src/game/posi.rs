@@ -1,3 +1,11 @@
+// TODO: allow cast_sign_loss and cast_possible_truncation
+// allow: use_self: in ops trait implementations, it makes it clearer what
+// returns what.
+#![allow(
+    clippy::use_self,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 use core::ops;
 
 use const_default::ConstDefault;
@@ -18,6 +26,14 @@ impl Posi {
             && self.y > area.pos.y
             && self.y < area.pos.y + area.rect.height as i32
     }
+
+    pub(crate) const fn y(value: i32) -> Self {
+        Self { x: 0, y: value }
+    }
+
+    pub(crate) const fn x(value: i32) -> Self {
+        Self { x: value, y: 0 }
+    }
 }
 impl From<Keys> for Posi {
     fn from(keys: Keys) -> Self {
@@ -30,50 +46,50 @@ impl From<Keys> for Posi {
     }
 }
 impl From<Pos> for Posi {
-    fn from(Pos { x, y }: Pos) -> Self {
-        Self { y: i32::from(y), x: i32::from(x) }
+    fn from(Pos { x, y }: Pos) -> Posi {
+        Posi { y: i32::from(y), x: i32::from(x) }
     }
 }
 impl From<Posi> for Pos {
-    fn from(Posi { x, y }: Posi) -> Self {
-        Self { y: y as u16, x: x as u16 }
+    fn from(Posi { x, y }: Posi) -> Pos {
+        Pos { y: y as u16, x: x as u16 }
     }
 }
 impl ops::AddAssign for Posi {
-    fn add_assign(&mut self, rhs: Self) {
+    fn add_assign(&mut self, rhs: Posi) {
         *self = *self + rhs;
     }
 }
 impl ops::SubAssign for Posi {
-    fn sub_assign(&mut self, rhs: Self) {
+    fn sub_assign(&mut self, rhs: Posi) {
         *self = *self - rhs;
     }
 }
 impl ops::Add<Posi> for Posi {
-    type Output = Self;
-    fn add(self, Self { x, y }: Self) -> Self {
-        Self { x: self.x + x, y: self.y + y }
+    type Output = Posi;
+    fn add(self, Posi { x, y }: Posi) -> Posi {
+        Posi { x: self.x + x, y: self.y + y }
     }
 }
 impl ops::Add<Posi> for Pos {
-    type Output = Self;
-    fn add(self, Posi { x, y }: Posi) -> Self {
-        Self {
+    type Output = Pos;
+    fn add(self, Posi { x, y }: Posi) -> Pos {
+        Pos {
             x: self.x.saturating_add_signed(x as i16),
             y: self.y.saturating_add_signed(y as i16),
         }
     }
 }
 impl ops::Sub<Posi> for Posi {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self {
+    type Output = Posi;
+    fn sub(self, rhs: Posi) -> Posi {
         self + -rhs
     }
 }
 impl ops::Neg for Posi {
-    type Output = Self;
-    fn neg(self) -> Self {
-        Self { x: -self.x, y: -self.y }
+    type Output = Posi;
+    fn neg(self) -> Posi {
+        Posi { x: -self.x, y: -self.y }
     }
 }
 

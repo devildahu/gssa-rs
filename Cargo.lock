@@ -55,6 +55,7 @@ dependencies = [
  "const-default",
  "gbassets",
  "haldvance",
+ "haldvance_utils",
 ]
 
 [[package]]
@@ -63,16 +64,17 @@ version = "0.4.0"
 dependencies = [
  "const-default",
  "gba",
- "haldvance_block",
+ "haldvance_utils",
  "include_const_aligned",
  "volmatrix",
 ]
 
 [[package]]
-name = "haldvance_block"
+name = "haldvance_utils"
 version = "0.4.0"
 dependencies = [
  "arrayvec",
+ "const-default",
 ]
 
 [[package]]

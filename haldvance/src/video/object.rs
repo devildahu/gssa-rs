@@ -42,12 +42,11 @@ pub mod sprite;
 
 use core::mem;
 
-use block::Blocks;
 use const_default::ConstDefault;
 use gba::mmio_types::{ObjAttr0, ObjAttr1, ObjAttr2};
+use utils::{Bitset128, Blocks};
 use volmatrix::rw::{VolAddress, VolBlock};
 
-use crate::bitset::Bitset128;
 use crate::video::{self, palette, Pos, Priority};
 
 #[cfg(doc)]
@@ -185,6 +184,7 @@ struct Attributes {
 /// on screen. (See [`Handle`] for details)
 ///
 /// See [`self`] module doc for how to use objects.
+#[derive(Debug)]
 pub struct Slot(u32);
 impl Slot {
     // allow: We assume here we will compile for the GBA only, and it's really

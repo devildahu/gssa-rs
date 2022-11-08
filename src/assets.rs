@@ -9,7 +9,7 @@ use hal::{sprite, sprite_sheet, tileset};
 pub(crate) mod space {
     use super::*;
 
-    pub(crate) const star_count: usize = 16;
+    pub(crate) const star_count: u32 = 16;
 
     /// The in-game menu tiles.
     pub(crate) const ui: Tileset<colmod::Bit8> = tileset!("gamesetui_til.bin");
@@ -32,14 +32,25 @@ pub(crate) mod space {
             PlayerDot,
             PlayerLine,
             PlayerParticles,
-            PlayerFlare,
+            Egg,
         }
         /// The bullet tiles, includes player and enemy bullets.
         pub(crate) const tiles: sprite::Sheet<14> = sprite_sheet!("bulls_til.bin");
-        pub(crate) const lvl0_pal: Palette = palette!("pbull_lv0_pal.bin");
-        pub(crate) const lvl1_pal: Palette = palette!("pbull_lv1_pal.bin");
-        pub(crate) const lvl2_pal: Palette = palette!("pbull_lv2_pal.bin");
-        pub(crate) const lvl3_pal: Palette = palette!("pbull_lv3_pal.bin");
+
+        /// The various palettes of player bullets, changing colors
+        /// according to player level.
+        pub(crate) struct BulletsPalette(
+            pub(crate) Palette,
+            pub(crate) Palette,
+            pub(crate) Palette,
+            pub(crate) Palette,
+        );
+        pub(crate) const bullet_pal: BulletsPalette = BulletsPalette(
+            palette!("pbull_lv0_pal.bin"),
+            palette!("pbull_lv1_pal.bin"),
+            palette!("pbull_lv2_pal.bin"),
+            palette!("pbull_lv3_pal.bin"),
+        );
     }
     /// The space background tiles.
     pub(crate) const background: Tileset<colmod::Bit8> = tileset!("gamesetbg_til.bin");
@@ -160,15 +171,6 @@ pub(crate) mod players {
         pub(crate) sprite: object::Sprite,
         pub(crate) pal: Palette,
     }
-    /// The various palettes of player bullets, changing colors
-    /// according to player level.
-    pub(crate) struct BulletsPalette(
-        pub(crate) Palette,
-        pub(crate) Palette,
-        pub(crate) Palette,
-        pub(crate) Palette,
-    );
-
     pub(crate) const paladin: Ship = Ship {
         sprite: sprite!("paladin_til.bin", object::Shape::_2x2),
         pal: palette!("paladin_pal.bin"),
@@ -181,12 +183,6 @@ pub(crate) mod players {
         sprite: sprite!("blank_til.bin", object::Shape::_2x2),
         pal: palette!("blank_pal.bin"),
     };
-    pub(crate) const bullet_pal: BulletsPalette = BulletsPalette(
-        palette!("pbull_lv0_pal.bin"),
-        palette!("pbull_lv1_pal.bin"),
-        palette!("pbull_lv2_pal.bin"),
-        palette!("pbull_lv3_pal.bin"),
-    );
 }
 
 /// Asset definitions of the main menu.

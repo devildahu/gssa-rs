@@ -28,7 +28,7 @@ impl Ship {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum HitPoints {
     _0,
     _1,
@@ -36,7 +36,7 @@ enum HitPoints {
     _3,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub(super) enum Weapon {
     Standard,
     Double,
@@ -53,6 +53,27 @@ impl Weapon {
         }
     }
 }
+/// From where is the player shooting.
+#[derive(Clone, Copy, Debug)]
+pub(super) enum FirePosition {
+    Top,
+    Bottom,
+}
+impl FirePosition {
+    pub(super) fn flip(&mut self) -> i32 {
+        let out = match self {
+            Self::Top => 2,
+            Self::Bottom => 8,
+        };
+        let new_value = match self {
+            Self::Top => Self::Bottom,
+            Self::Bottom => Self::Top,
+        };
+        *self = new_value;
+        out
+    }
+}
+#[derive(Debug)]
 pub(super) struct Player {
     pub(super) pos: Pos,
     /// Last time player fired (for cooldown).
@@ -61,6 +82,7 @@ pub(super) struct Player {
     next_hit_frame: usize,
     pub(super) weapon: Weapon,
     life: HitPoints,
+    pub(super) last_fire: FirePosition,
     slot: object::Slot,
 }
 impl Player {
@@ -82,6 +104,7 @@ impl Player {
             pos: INITIAL_PLAYER_POS,
             next_fire_frame: 0,
             next_hit_frame: 0,
+            last_fire: FirePosition::Bottom,
             weapon,
             life,
             slot,
@@ -92,7 +115,7 @@ impl Player {
         let frame = console.frame;
         let momentum: Posi = input.current().into();
         self.pos = self.pos + momentum;
-        if input.pressed(Key::A) && self.next_fire_frame > frame {
+        if input.pressed(Key::A) && self.next_fire_frame < frame {
             let slot = console.reserve_object()?;
             self.next_fire_frame = frame + self.weapon.cooldown();
 

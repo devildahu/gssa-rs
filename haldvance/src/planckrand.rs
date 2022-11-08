@@ -1,4 +1,4 @@
-//! Tinny tinny tinny random crate using the wyhash algorithm.
+//! Tinny tinny tinny random module using the wyhash algorithm.
 //!
 //! Taken from <https://github.com/eldruin/wyhash-rs>
 
@@ -39,13 +39,13 @@ impl Rng {
         self.seed = self.seed.wrapping_add(P0);
         random(self.seed, self.seed ^ P1)
     }
-    /// An infinite iterator, each item an `usize` of which `bit_count` bits
+    /// An infinite iterator, each item an `u32` of which `bit_count` bits
     /// are randomly set.
     ///
     /// # Panics
     /// (const time only) If `COUNT > 32`
     pub fn random_bits<const COUNT: u32>(&mut self) -> RandBitsIter<COUNT> {
-        assert!(COUNT <= usize::BITS);
+        assert!(COUNT <= u32::BITS);
         RandBitsIter {
             random_value: self.u64(),
             inner: self,
@@ -66,7 +66,7 @@ impl<'a, const COUNT: u32> RandBitsIter<'a, COUNT> {
     const ITEM_PER_VALUE: u32 = 64 / COUNT;
 }
 impl<'a, const COUNT: u32> Iterator for RandBitsIter<'a, COUNT> {
-    type Item = usize;
+    type Item = u32;
     /// Note that this iterator is unbound, therefore is never `None`.
     fn next(&mut self) -> Option<Self::Item> {
         if self.items_for_value == Self::ITEM_PER_VALUE {
@@ -79,7 +79,7 @@ impl<'a, const COUNT: u32> Iterator for RandBitsIter<'a, COUNT> {
         // "delete" the random bits we just used and replace them with the
         // newly generated ones.
         self.random_value >>= COUNT;
-        // unwrap: by construction, COUNT will always be lower than usize::BITS,
+        // unwrap: by construction, COUNT will always be lower than u32::BITS,
         // therefore
         Some(ret.try_into().unwrap())
     }

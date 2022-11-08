@@ -169,6 +169,7 @@ C version)
 - [X] See player character (change depending on which selected)
 - [X] Move player character
 - [X] Player can shoot bullets
+  - [ ] Bullet speed is fixed point and generally can vary
 - [ ] random drop allowing to change weapon
 - [ ] random drops allowing to restore health
 - [ ] Spawn Random enemies

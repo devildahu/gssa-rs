@@ -1,6 +1,8 @@
 use core::mem;
 
 use arrayvec::ArrayVec;
+use const_default::ConstDefault;
+use utils::Bitset128;
 
 mod background;
 mod bullet;
@@ -23,18 +25,26 @@ const MAX_BULLETS: usize = 88;
 pub(crate) struct Space {
     player: Player,
     bullets: ArrayVec<Bullet, MAX_BULLETS>,
+    new_bullets: Bitset128,
     bullet_sprites: sprite::SheetSlot<14>,
     ship: Ship,
 }
 
 impl Space {
     pub(crate) fn update(&mut self, console: &mut ConsoleState) -> Transition {
-        self.player.update(console);
-        self.bullets.retain(|bullet| {
+        self.bullets.iter_mut().for_each(|bullet| {
             bullet.update(console.frame);
-            !bullet.should_die(console.frame)
-            // TODO: do not leak the object slots, using a mutex on drop
         });
+        if let Some(new_bullet) = self.player.update(console) {
+            match self.bullets.try_push(new_bullet) {
+                Ok(()) => {
+                    self.new_bullets.reserve((self.bullets.len() - 1) as u32);
+                }
+                Err(_) => {
+                    hal::error!("Couldn't spawn a bullet, too many already on screen!");
+                }
+            }
+        }
         Transition::Stay
     }
 
@@ -42,10 +52,28 @@ impl Space {
     // a no-op. I just can't be harsed to explictly handle it.
     #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     pub(crate) fn affine_draw(
-        &self,
+        &mut self,
         console: &mut ConsoleState,
         ctrl: &mut video::Control<mode::Affine>,
     ) {
+        self.bullets = self
+            .bullets
+            .drain(..)
+            .enumerate()
+            .filter_map(|(i, bullet)| match () {
+                () if bullet.should_die(console.frame) => {
+                    let slot = bullet.into_slot();
+                    ctrl.object(&slot).set_visible(false);
+                    console.free_object(slot);
+                    None
+                }
+                () if !self.new_bullets.free(i as u32) => {
+                    bullet.setup_video(&self.bullet_sprites, ctrl);
+                    Some(bullet)
+                }
+                () => Some(bullet),
+            })
+            .collect();
         let mut layer = ctrl.layer(affine::Slot::_2);
         layer.set_x_offset((console.frame as i32) * 2);
         mem::drop(layer);
@@ -65,6 +93,7 @@ impl Space {
         Self {
             player: Player::new(player_slot, selected_ship),
             bullets: ArrayVec::new_const(),
+            new_bullets: Bitset128::DEFAULT,
             bullet_sprites,
             ship: selected_ship,
         }

@@ -1,0 +1,16 @@
+[package]
+name = "haldvance_utils"
+description = "Various allocation algorithm for the haldvance crate"
+version = "0.4.0"
+authors = ["Nicola Papale"]
+edition = "2021"
+license = "Zlib OR Apache-2.0"
+keywords = ["gba"]
+
+[features]
+default = []
+test = ["arrayvec/std", "const-default/std"]
+
+[dependencies]
+arrayvec = {version = "0.7", default-features = false }
+const-default = { version = "1.0", default-features = false, features = ["derive"] }

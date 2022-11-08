@@ -6,7 +6,7 @@ use const_default::ConstDefault;
 
 /// A position, depending on context, may be a tile location on a tile map or
 /// a coordinate of an object.
-#[derive(Copy, Clone, ConstDefault)]
+#[derive(Copy, Clone, ConstDefault, Debug)]
 pub struct Pos {
     pub x: u16,
     pub y: u16,

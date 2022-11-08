@@ -80,7 +80,7 @@ impl GameState for State {
         }
     }
     fn affine_draw(&mut self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
-        if let Screen::Space(space) = &self.screen {
+        if let Screen::Space(space) = &mut self.screen {
             space.affine_draw(console, ctrl);
         }
     }

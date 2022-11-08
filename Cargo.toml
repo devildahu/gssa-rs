@@ -14,11 +14,12 @@ log = ["hal/log"]
 arrayvec = { version = "0.7", default-features = false }
 # NOTE: renamed to use hal::*; in source code
 hal = { version = "0.4", package = "haldvance", path = "haldvance", default-features = false }
+utils = { version = "0.4", package = "haldvance_utils", path = "haldvance_utils", default-features = false }
 gbassets = { version = "0.1", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
 
 [workspace]
-members = ["haldvance", "volmatrix", "gbassets", "include_const_aligned", "haldvance_block"]
+members = ["haldvance", "volmatrix", "gbassets", "include_const_aligned", "haldvance_utils"]
 
 [profile.release]
 lto = true

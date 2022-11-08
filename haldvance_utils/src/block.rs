@@ -4,12 +4,6 @@
 //! in space.
 //!
 //! [`Blocks`] acts like a heap, where you can add and remove things.
-#![cfg_attr(not(feature = "test"), no_std)]
-#![warn(clippy::pedantic, clippy::nursery)]
-#![feature(const_mut_refs)]
-
-#[cfg(all(test, target = "thumbv4t-none-eabi"))]
-compile_error!("Tests cannot be ran in thumbv4t mode, you should use the host's architecture");
 
 use arrayvec::ArrayVec;
 
@@ -21,7 +15,7 @@ struct Gap {
 /// A `Block` represents something take takes [`Block::size`].
 /// Each occupied `Block` is identified with `Id`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Block<Id: PartialEq> {
+enum Block<Id: PartialEq> {
     /// A void of size `u16` left from something that was removed.
     Gap(u16),
     /// Something identified by `Id` that takes `u16` space.

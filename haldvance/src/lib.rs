@@ -9,7 +9,6 @@
 #![allow(clippy::redundant_pub_crate)]
 #![feature(const_mut_refs, const_type_id)]
 
-mod bitset;
 mod planckrand;
 mod unique_id;
 
