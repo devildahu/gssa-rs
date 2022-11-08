@@ -14,7 +14,7 @@ log = []
 sane_asserts = []
 
 [dependencies]
-arrayvec = {version = "0.7", default-features = false }
+block = { version = "0.4", path = "../haldvance_block", package = "haldvance_block" }
 gba = { version = "0.5.3", git = "https://github.com/nicopap/gba.git", branch = "text-bg-entry" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
 include_const_aligned = { version = "0.4.0", path = "../include_const_aligned" }

@@ -92,10 +92,24 @@ of rapid iteration, it is only
 LOL 🤣.
 You have to understand that interacting with the GBA means literally twiddling
 bits in hardcoded addresses.
-Short of implementing a full emulator, testing seems difficult.
-Furthermore, games being by definition a constantly moving target
+
+Additionally, cargo's built-in test library do not run on `#[no_std]`
+environments, making it particularly tricky to get things working.
+
+Nonetheless, an attempt is made at testing. Currently, it's possible to test
+the `haldvance_block` crate, for allocating sprites. You must run this command:
+
+```sh
+cargo test --package haldvance_block --target <native_target> --features test
+```
+
+Replacing `<native_target>` by your own machine's target triplet (mine is
+`x86_64-unknown-linux-gnu`)
+
+Furthermore, games are by definition a constantly moving target
 with an end product that do generally not require decades-long maintenance,
 tests are much less "value add" than in other contexts.
+So the actual gameplay code is expected to not be tested.
 
 Therefore, we rely heavily on the type system for corectness.
 This might be unwise, given the amount of unsafe required to get things running

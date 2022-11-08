@@ -26,6 +26,7 @@ use gba::mmio_types::DisplayControl;
 use volmatrix::VolMemcopy;
 
 use crate::exec::ConsoleState;
+use crate::info;
 use object::{sprite, Sprite};
 use tile::{Color, OBJ_PALRAM};
 
@@ -174,11 +175,25 @@ impl<M: Mode> Control<M> {
         console: &mut ConsoleState,
         sprite: &Sprite,
     ) -> Option<sprite::Slot> {
-        let offset = console.objects.reserve_sprite(sprite)?;
-        let address = offset.get() as usize;
-        // TODO: probably worth considering a map to u32 somehow
-        object::OBJ_SPRITE.write_slice_at_offset(address, sprite.get());
+        let offset = console
+            .objects
+            .reserve_sprite(sprite.id(), sprite.tile_count())?;
+        info!("offset of sprite {:?}: {offset:?}", sprite.id());
+        sprite.load_at_slot(offset);
         Some(offset)
+    }
+    /// Same as [`Self::load_sprite`], but for [`sprite::Sheet`]s.
+    pub fn load_sprite_sheet<const I: u16>(
+        &mut self,
+        console: &mut ConsoleState,
+        sprite: &sprite::Sheet<I>,
+    ) -> Option<sprite::SheetSlot<I>> {
+        let offset = console
+            .objects
+            .reserve_sprite(sprite.id(), sprite.tile_count())?;
+        info!("offset of sheet {:?}: {offset:?}", sprite.id());
+        sprite.load_at_slot(offset);
+        Some(sprite::SheetSlot::from_slot(offset))
     }
     /// Remove `sprite` from video memory. Warning: if there are still active
     /// objects refering to the given `Sprite`, then their value might change
@@ -186,8 +201,16 @@ impl<M: Mode> Control<M> {
     ///
     /// Returns `true` if `sprite` was indeed loaded,
     /// otherwise does nothing and returns `false`.
-    pub fn unload_spirte(&mut self, console: &mut ConsoleState, sprite: &Sprite) -> bool {
-        console.objects.free_sprite(sprite.id)
+    pub fn unload_sprite(&mut self, console: &mut ConsoleState, sprite: &Sprite) -> bool {
+        console.objects.free_sprite(sprite.id())
+    }
+    /// Same as [`Self::unload_sprite`], but for [`sprite::Sheet`]s.
+    pub fn unload_sprite_sheet<const I: u16>(
+        &mut self,
+        console: &mut ConsoleState,
+        sprite: &sprite::Sheet<I>,
+    ) -> bool {
+        console.objects.free_sprite(sprite.id())
     }
     /// Replace a `previous` object sprite with `new`,
     /// may be useful for animations.
@@ -199,9 +222,8 @@ impl<M: Mode> Control<M> {
         previous: &Sprite,
         new: &Sprite,
     ) -> Option<sprite::Slot> {
-        let offset = console.objects.replace_sprite(previous.id, new)?;
-        let address = offset.get() as usize;
-        object::OBJ_SPRITE.write_slice_at_offset(address, new.get());
+        let offset = console.objects.replace_sprite(previous.id(), new)?;
+        new.load_at_slot(offset);
         Some(offset)
     }
 }

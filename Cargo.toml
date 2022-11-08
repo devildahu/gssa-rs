@@ -18,7 +18,7 @@ gbassets = { version = "0.1", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
 
 [workspace]
-members = ["haldvance", "volmatrix", "gbassets", "include_const_aligned"]
+members = ["haldvance", "volmatrix", "gbassets", "include_const_aligned", "haldvance_block"]
 
 [profile.release]
 lto = true

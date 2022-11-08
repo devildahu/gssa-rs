@@ -21,7 +21,7 @@ impl Posi {
 }
 impl From<Keys> for Posi {
     fn from(keys: Keys) -> Self {
-        use Dir::*;
+        use Dir::{Down, Left, Right, Up};
         let pressed_dir = |dir, value| if keys.pressed(Key::Dpad(dir)) { value } else { 0 };
         let mut ret = Self::DEFAULT;
         ret.y += pressed_dir(Down, 1) - pressed_dir(Up, 1);
@@ -31,7 +31,7 @@ impl From<Keys> for Posi {
 }
 impl From<Pos> for Posi {
     fn from(Pos { x, y }: Pos) -> Self {
-        Self { y: y as i32, x: x as i32 }
+        Self { y: i32::from(y), x: i32::from(x) }
     }
 }
 impl From<Posi> for Pos {

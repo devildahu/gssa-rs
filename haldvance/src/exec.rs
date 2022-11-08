@@ -16,9 +16,9 @@ pub use crate::planckrand::{RandBitsIter, Rng};
 
 pub enum EnterMode<T: ?Sized, F, G, H>
 where
-    F: FnOnce(&mut video::Control<mode::Text>, &T, &mut ConsoleState),
-    G: FnOnce(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState),
-    H: FnOnce(&mut video::Control<mode::Affine>, &T, &mut ConsoleState),
+    F: FnOnce(&mut video::Control<mode::Text>, &mut T, &mut ConsoleState),
+    G: FnOnce(&mut video::Control<mode::Mixed>, &mut T, &mut ConsoleState),
+    H: FnOnce(&mut video::Control<mode::Affine>, &mut T, &mut ConsoleState),
 {
     Text(F),
     Mixed(G),
@@ -29,12 +29,12 @@ where
 }
 impl<T: ?Sized, F, G, H> EnterMode<T, F, G, H>
 where
-    F: FnOnce(&mut video::Control<mode::Text>, &T, &mut ConsoleState),
-    G: FnOnce(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState),
-    H: FnOnce(&mut video::Control<mode::Affine>, &T, &mut ConsoleState),
+    F: FnOnce(&mut video::Control<mode::Text>, &mut T, &mut ConsoleState),
+    G: FnOnce(&mut video::Control<mode::Mixed>, &mut T, &mut ConsoleState),
+    H: FnOnce(&mut video::Control<mode::Affine>, &mut T, &mut ConsoleState),
 {
     // TODO: inspect asm
-    fn enter(self, mode: ControlModes, state: &T, console: &mut ConsoleState) -> ControlModes {
+    fn enter(self, mode: ControlModes, state: &mut T, console: &mut ConsoleState) -> ControlModes {
         macro_rules! execute_enter {
             (@branch $variant:ident, $ctrl:expr, $init:expr) => {{
                 let mut new_mode = $ctrl.enter_mode::<mode::$variant>();
@@ -119,9 +119,9 @@ impl ConsoleState {
     }
 }
 
-type GsF<T> = fn(&mut video::Control<mode::Text>, &T, &mut ConsoleState);
-type GsG<T> = fn(&mut video::Control<mode::Mixed>, &T, &mut ConsoleState);
-type GsH<T> = fn(&mut video::Control<mode::Affine>, &T, &mut ConsoleState);
+type GsF<T> = fn(&mut video::Control<mode::Text>, &mut T, &mut ConsoleState);
+type GsG<T> = fn(&mut video::Control<mode::Mixed>, &mut T, &mut ConsoleState);
+type GsH<T> = fn(&mut video::Control<mode::Affine>, &mut T, &mut ConsoleState);
 pub type GameStateEnterMode<T> = EnterMode<T, GsF<T>, GsG<T>, GsH<T>>;
 
 /// The game definition.
@@ -138,15 +138,19 @@ pub trait GameState {
     ///
     /// You must handle text mode, if only to setup a different mode you'll
     /// use for the rest of your game.
-    fn text_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Text>);
+    fn text_draw(&mut self, console: &mut ConsoleState, video: &mut video::Control<mode::Text>);
 
     /// Draw stuff in [`mode::Mixed`], by default does nothing.
-    fn mixed_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Mixed>) {
+    fn mixed_draw(&mut self, console: &mut ConsoleState, video: &mut video::Control<mode::Mixed>) {
         let _ = (video, console);
     }
 
     /// Draw stuff in [`mode::Affine`], by default does nothing.
-    fn affine_draw(&self, console: &mut ConsoleState, video: &mut video::Control<mode::Affine>) {
+    fn affine_draw(
+        &mut self,
+        console: &mut ConsoleState,
+        video: &mut video::Control<mode::Affine>,
+    ) {
         let _ = (video, console);
     }
 }
@@ -177,7 +181,7 @@ pub unsafe fn full_game<Stt: GameState>(mut state: Stt) -> ! {
 
         spin_until_vblank();
         video_control = match enter_video_mode.take() {
-            Some(mode) => mode.enter(video_control, &state, &mut console),
+            Some(mode) => mode.enter(video_control, &mut state, &mut console),
             None => video_control,
         };
         match &mut video_control {

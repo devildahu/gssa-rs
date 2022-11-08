@@ -23,7 +23,7 @@ const MAX_BULLETS: usize = 88;
 pub(crate) struct Space {
     player: Player,
     bullets: ArrayVec<Bullet, MAX_BULLETS>,
-    bullet_sprite: sprite::Slot,
+    bullet_sprites: sprite::SheetSlot<14>,
     ship: Ship,
 }
 
@@ -60,12 +60,12 @@ impl Space {
     pub(crate) const fn start(
         selected_ship: Ship,
         player_slot: object::Slot,
-        bullet_sprite: sprite::Slot,
+        bullet_sprites: sprite::SheetSlot<14>,
     ) -> Self {
         Self {
             player: Player::new(player_slot, selected_ship),
             bullets: ArrayVec::new_const(),
-            bullet_sprite,
+            bullet_sprites,
             ship: selected_ship,
         }
     }
@@ -107,8 +107,5 @@ impl Space {
         layer.set_size(AffineSize::Base);
         mem::drop(layer);
         background::generate_planets(rng, ctrl.sbb(PLANET_SBB, AffineSize::Base));
-
-        ctrl.enable_objects();
-        ctrl.set_object_tile_mapping(object::TileMapping::OneDim);
     }
 }

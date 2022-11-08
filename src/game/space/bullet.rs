@@ -9,6 +9,8 @@ pub(crate) struct Bullet {
     slot: object::Slot,
 }
 impl Bullet {
+    // allow: because of `player.pos.into()` this can't be const
+    #[allow(clippy::missing_const_for_fn)]
     pub(in crate::game) fn new_from_player(
         player: &Player,
         frame: usize,

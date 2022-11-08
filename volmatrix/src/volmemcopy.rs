@@ -37,8 +37,18 @@ pub trait VolMemcopy<T>: Sized {
 }
 impl<T: Copy, const C: usize> VolMemcopy<T> for VolBlock<T, Safe, Safe, C> {
     fn write_slice_at_offset(self, offset: usize, slice: &[T]) {
-        let iter = self.iter().skip(offset).zip(slice.iter());
-        iter.for_each(|(addr, value)| addr.write(*value));
+        for (i, elem) in slice.iter().enumerate() {
+            if let Some(addr) = self.get(i + offset) {
+                addr.write(*elem);
+            } else {
+                break;
+            }
+        }
+        // NOTE: the `for` loop seems to optimize into _the optimal code_ with
+        // use of `ldm` and `stm`, while the following code seems to go wazoop.
+        // (beside it's broken: https://github.com/rust-console/voladdress/issues/30)
+        // let iter = self.iter().skip(offset).zip(slice.iter());
+        // iter.for_each(|(addr, value)| addr.write(*value));
     }
     fn read_offset_into_slice(self, offset: usize, slice: &mut [T]) {
         let iter = self.iter().skip(offset).zip(slice.iter_mut());

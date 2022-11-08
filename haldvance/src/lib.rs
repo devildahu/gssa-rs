@@ -10,7 +10,6 @@
 #![feature(const_mut_refs, const_type_id)]
 
 mod bitset;
-mod block;
 mod planckrand;
 mod unique_id;
 

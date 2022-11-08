@@ -1,8 +1,8 @@
 //! Embedded game asset definitions.
 
 use gbassets::{image, palette, Cycle, Image, Palette};
-use hal::video::{colmod, object, Tileset};
-use hal::{sprite, tileset};
+use hal::video::{colmod, object, object::sprite, Tileset};
+use hal::{sprite, sprite_sheet, tileset};
 
 /// Asset definitions of the main game graphical elements.
 #[allow(non_upper_case_globals, clippy::wildcard_imports)]
@@ -13,8 +13,34 @@ pub(crate) mod space {
 
     /// The in-game menu tiles.
     pub(crate) const ui: Tileset<colmod::Bit8> = tileset!("gamesetui_til.bin");
-    /// The bullet tiles, includes player and enemy bullets.
-    pub(crate) const bullets: Tileset<colmod::Bit8> = tileset!("bulls_til.bin");
+    pub(crate) mod bullets {
+        use super::*;
+
+        /// Available Bullet sprites.
+        #[repr(u16)]
+        pub(crate) enum Bullets {
+            Circle,
+            Cross,
+            Dash,
+            Dot,
+            Plus,
+            FatDot,
+            Diamond,
+            Squiggle,
+            I,
+            PlayerDash,
+            PlayerDot,
+            PlayerLine,
+            PlayerParticles,
+            PlayerFlare,
+        }
+        /// The bullet tiles, includes player and enemy bullets.
+        pub(crate) const tiles: sprite::Sheet<14> = sprite_sheet!("bulls_til.bin");
+        pub(crate) const lvl0_pal: Palette = palette!("pbull_lv0_pal.bin");
+        pub(crate) const lvl1_pal: Palette = palette!("pbull_lv1_pal.bin");
+        pub(crate) const lvl2_pal: Palette = palette!("pbull_lv2_pal.bin");
+        pub(crate) const lvl3_pal: Palette = palette!("pbull_lv3_pal.bin");
+    }
     /// The space background tiles.
     pub(crate) const background: Tileset<colmod::Bit8> = tileset!("gamesetbg_til.bin");
     /// The palette for the space background.
@@ -31,6 +57,7 @@ pub(crate) mod space {
         // Player bullets
         cycle(26..26 + 6, 8),
     );
+
     #[repr(u8)]
     pub(crate) enum Ships {
         SmallBlue,

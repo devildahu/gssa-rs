@@ -4,6 +4,12 @@
 //! in space.
 //!
 //! [`Blocks`] acts like a heap, where you can add and remove things.
+#![cfg_attr(not(feature = "test"), no_std)]
+#![warn(clippy::pedantic, clippy::nursery)]
+#![feature(const_mut_refs)]
+
+#[cfg(all(test, target = "thumbv4t-none-eabi"))]
+compile_error!("Tests cannot be ran in thumbv4t mode, you should use the host's architecture");
 
 use arrayvec::ArrayVec;
 
@@ -36,7 +42,7 @@ impl<Id: PartialEq> Block<Id> {
 /// Resources all have a unique `Id`, and attempts to allocate twice the same
 /// `Id` will result in the existing allocation being returned.
 #[derive(Debug)]
-pub(crate) struct Blocks<Id: PartialEq, const MAX_BLOCKS: usize> {
+pub struct Blocks<Id: PartialEq, const MAX_BLOCKS: usize> {
     blocks: ArrayVec<Block<Id>, MAX_BLOCKS>,
     /// Maximum size of blocks.
     full_size: u16,
@@ -46,6 +52,7 @@ where
     Id: PartialEq + Copy,
 {
     /// Create a new empty `Blocks`.
+    #[must_use]
     pub const fn new(full_size: u16) -> Self {
         Self { blocks: ArrayVec::new_const(), full_size }
     }
@@ -69,7 +76,7 @@ where
         let to_insert = Block::Full(id, size);
         match self.first_gap_of_size(size) {
             Some(Gap { index, gap_size }) if gap_size > size => {
-                crate::debug!("Found a gap of size {gap_size}, inserting");
+                // crate::debug!("Found a gap of size {gap_size}, inserting");
                 // SAFETY: `index` is always within `blocks` because it results
                 // from `first_gap_of_size` which only returns indices from
                 // existing elements.
@@ -81,7 +88,7 @@ where
                 Some(index)
             }
             Some(Gap { index, .. }) => {
-                crate::debug!("Found a gap of exact same size! inserting");
+                // crate::debug!("Found a gap of exact same size! inserting");
                 // SAFETY: `index` is always within `blocks` because it results
                 // from `first_gap_of_size` which only returns indices from
                 // existing elements.
@@ -103,7 +110,7 @@ where
         if already_existing.is_some() {
             return already_existing;
         }
-        crate::debug!("Try to insert an object of size {size}");
+        // crate::debug!("Try to insert an object of size {size}");
         let insert_index = self.replace_gap(id, size)?;
         let offset = self.blocks.iter().take(insert_index).map(Block::size).sum();
         (offset + size <= self.full_size).then_some(offset)
@@ -211,64 +218,63 @@ where
         }
     }
 }
-/* TODO: move this module to a separate crate and test it independently.
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_gap() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        assert_eq!(0, blocks.insert_size(1_u8, 3));
-        assert_eq!(3, blocks.insert_size(2, 20));
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        assert_eq!(Some(0), blocks.insert_sized(1, 3));
+        assert_eq!(Some(3), blocks.insert_sized(2, 20));
     }
     #[test]
     fn test_reinsertion() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        blocks.insert_size(1_u8, 3);
-        blocks.insert_size(2, 2);
-        blocks.insert_size(3, 8);
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        blocks.insert_sized(1, 3);
+        blocks.insert_sized(2, 2);
+        blocks.insert_sized(3, 8);
         blocks.remove(2);
-        assert_eq!(3, blocks.insert_size(4, 1));
-        assert_eq!(3 + 1, blocks.insert_size(5, 1));
+        assert_eq!(Some(3), blocks.insert_sized(4, 1));
+        assert_eq!(Some(3 + 1), blocks.insert_sized(5, 1));
     }
     #[test]
     fn test_reinsertion_merging() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        blocks.insert_size(1_u8, 3);
-        blocks.insert_size(2, 1);
-        blocks.insert_size(3, 1);
-        blocks.insert_size(4, 8);
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        blocks.insert_sized(1, 3);
+        blocks.insert_sized(2, 1);
+        blocks.insert_sized(3, 1);
+        blocks.insert_sized(4, 8);
         blocks.remove(2);
         blocks.remove(3);
-        assert_eq!(3, blocks.insert_size(5, 2));
+        assert_eq!(Some(3), blocks.insert_sized(5, 2));
     }
     #[test]
     fn test_fat_block() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        blocks.insert_size(1_u8, 1);
-        blocks.insert_size(2, 1);
-        blocks.insert_size(3, 8);
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        blocks.insert_sized(1, 1);
+        blocks.insert_sized(2, 1);
+        blocks.insert_sized(3, 8);
         blocks.remove(2);
-        assert_eq!(1 + 1 + 8, blocks.insert_size(4, 3));
+        assert_eq!(Some(1 + 1 + 8), blocks.insert_sized(4, 3));
     }
     #[test]
     fn test_cleanup_single_block_end() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        blocks.insert_size(1_u8, 1);
-        blocks.insert_size(2, 1);
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        blocks.insert_sized(1, 1);
+        blocks.insert_sized(2, 1);
         blocks.remove(2);
-        assert_eq!(1, blocks.insert_size(3, 10));
+        assert_eq!(Some(1), blocks.insert_sized(3, 10));
     }
     #[test]
     fn test_cleanup_multiple_block_end() {
-        let mut blocks = Blocks::<u8, 128>::DEFAULT;
-        blocks.insert_size(1_u8, 1);
-        blocks.insert_size(2, 1);
-        blocks.insert_size(3, 1);
+        let mut blocks = Blocks::<u8, 128>::new(128);
+        blocks.insert_sized(1, 1);
+        blocks.insert_sized(2, 1);
+        blocks.insert_sized(3, 1);
         blocks.remove(2);
         blocks.remove(3);
-        assert_eq!(1, blocks.insert_size(4, 1));
+        assert_eq!(Some(1), blocks.insert_sized(4, 1));
     }
 }
-*/

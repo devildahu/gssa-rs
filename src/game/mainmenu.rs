@@ -145,7 +145,7 @@ impl Mainmenu {
                     self.just_new_screen = true;
                 }
                 Submenu::Main(MainEntry::Start) => {
-                    return Transition::EnterGame(self.selected_ship);
+                    return Transition::EnterGame;
                 }
             }
         } else if console.input.just_pressed(Key::B) {

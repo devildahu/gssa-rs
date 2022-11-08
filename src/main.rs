@@ -46,17 +46,25 @@ impl GameState for State {
         match &mut self.screen {
             Screen::Mainmenu(mainmenu) => {
                 let result = mainmenu.logic(console);
-                if let Transition::EnterGame(ship) = result {
-                    // TODO: unwrap
-                    let slot = console.reserve_object().unwrap();
-                    self.screen = Screen::Space(game::Space::start(ship, slot));
-                    let setup_video =
-                        |ctrl: &mut video::Control<_>, state: &Self, console: &mut ConsoleState| {
-                            if let Self { screen: Screen::Space(space) } = state {
-                                space.setup_video(ctrl, console);
-                            }
+                if Transition::EnterGame == result {
+                    return Some(EnterMode::Affine(|ctrl, state, console| {
+                        let ship = match &state.screen {
+                            Screen::Mainmenu(mainmenu) => mainmenu.selected_ship,
+                            Screen::Space(_) => return,
                         };
-                    return Some(EnterMode::Affine(setup_video));
+                        // TODO: unwrap
+                        let slot = match console.reserve_object() {
+                            Some(slot) => slot,
+                            None => return,
+                        };
+                        let sprite = ctrl
+                            .load_sprite_sheet(console, &assets::space::bullets::tiles)
+                            .unwrap();
+                        state.screen = Screen::Space(game::Space::start(ship, slot, sprite));
+                        if let Self { screen: Screen::Space(space) } = state {
+                            space.setup_video(ctrl, console);
+                        }
+                    }));
                 };
             }
             Screen::Space(space) => {
@@ -66,12 +74,12 @@ impl GameState for State {
         None
     }
 
-    fn text_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Text>) {
+    fn text_draw(&mut self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Text>) {
         if let Screen::Mainmenu(mainmenu) = &self.screen {
             mainmenu.text_draw(console, ctrl);
         }
     }
-    fn affine_draw(&self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
+    fn affine_draw(&mut self, console: &mut ConsoleState, ctrl: &mut video::Control<mode::Affine>) {
         if let Screen::Space(space) = &self.screen {
             space.affine_draw(console, ctrl);
         }

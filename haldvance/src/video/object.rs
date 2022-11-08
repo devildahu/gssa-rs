@@ -12,10 +12,11 @@
 //!
 //! - Define a sprite with the [`crate::sprite!`] macro.
 //! - Load your sprite to video memory using
-//!   [`video::Control::load_spirte`] to get a [`Sprite`].
+//!   [`video::Control::load_sprite`] to get a [`sprite::Slot`].
 //! - Allocate an object [`Slot`] with [`ConsoleState::reserve_object`].
 //! - Get a [`Handle`] for the [`Slot`] using [`video::Control::object`].
 //! - Use methods on [`Handle`] to manipulate object on screen.
+//! - Notably, set the sprite of the object with [`Handle::set_sprite`].
 //! - For the life time of the object, keep the [`Slot`] in your game state.
 //! - Once the object dies, you should free the slot using [`ConsoleState::free_object`].
 //!
@@ -41,13 +42,12 @@ pub mod sprite;
 
 use core::mem;
 
+use block::Blocks;
 use const_default::ConstDefault;
 use gba::mmio_types::{ObjAttr0, ObjAttr1, ObjAttr2};
 use volmatrix::rw::{VolAddress, VolBlock};
 
 use crate::bitset::Bitset128;
-use crate::block::Blocks;
-use crate::sane_assert;
 use crate::video::{self, palette, Pos, Priority};
 
 #[cfg(doc)]
@@ -64,7 +64,7 @@ const SPRITE_MAX_BLOCKS: usize = SPRITE_FULL_SIZE as usize / 2;
 // TODO: bump by 512 in bitmap modes
 
 // SAFETY: this OBJ_SPRITE is indeed inside VRAM.
-pub(super) const OBJ_SPRITE: VolBlock<sprite::Entry, { 0x8000 / mem::size_of::<sprite::Entry>() }> =
+pub(super) const OBJ_SPRITE: VolBlock<sprite::Tile, { 0x8000 / mem::size_of::<sprite::Tile>() }> =
     unsafe { VolBlock::new(OBJ_SPRITE_ADDR_USIZE) };
 
 /// The layout in memory of tiles used by objects.
@@ -203,6 +203,11 @@ impl Slot {
     const fn register(&self) -> VolAddress<Attributes> {
         // SAFETY: `self.objects` is by definition lower than Self::MAX_BLOCKS,
         // which is the size of OBJ_ARRAY, meaning that `.get` returns always a `Some`.
+        //
+        // NOTE: The offset for object attribute is of 4 u16, despite attributes being
+        // 3 u16s. They have padding, the padding itself being used for rot/scale
+        // parameters. (see  LCD OBJ - OAM Rotation/Scaling Parameters section
+        // of GBATEK)
         let offset = mem::size_of::<[u16; 4]>() * self.0 as usize;
         unsafe { VolAddress::new(OBJ_ADDR_USIZE + offset) }
     }
@@ -265,17 +270,9 @@ impl<'a> Handle<'a> {
         self.value.attr0.set_mosaic(is_mosaic);
     }
     /// Set sprite used by object.
-    ///
-    /// # Panics
-    ///
-    /// (`"sane_assert"` only)
-    /// If `self.palette_mode() == palette::Type::Full && tile.get() % 2 == 1`
-    ///
-    /// Without `sane_assert`, odd tiles won't have effect with a full palette mode.
     pub fn set_sprite(&mut self, sprite: sprite::Slot) {
-        sane_assert!(!self.value.attr0.use_palbank() && tile.0 % 2 == 0);
-        self.value.attr0.set_use_palbank(true);
-        self.value.attr2.set_tile_index(sprite.offset);
+        // TODO: understand why I need to multiply offset by 2.
+        self.value.attr2.set_tile_index(sprite.offset * 2);
     }
     /// Set palette mode used by object.
     ///
@@ -347,10 +344,8 @@ impl Allocator {
     /// in order to make sense. [`video::Control::unload_sprite`] should be used
     /// with [`Self::free_sprite`]
     #[must_use]
-    pub(crate) fn reserve_sprite(&mut self, sprite: &Sprite) -> Option<sprite::Slot> {
-        let shape = sprite.shape;
-        let id = sprite.id;
-        let free = self.sprites.insert_sized(id, shape.tile_count())?;
+    pub(crate) fn reserve_sprite(&mut self, id: sprite::Id, count: u16) -> Option<sprite::Slot> {
+        let free = self.sprites.insert_sized(id, count)?;
         // SAFETY: We assume that `Blocks::insert_size` implementation is correct,
         // and therefore will never allocate something outside of the provided
         // SPRITE_FULL_SIZE, which is 1024.
@@ -363,9 +358,8 @@ impl Allocator {
     }
     /// Replace sprite.
     pub(crate) fn replace_sprite(&mut self, old: sprite::Id, new: &Sprite) -> Option<sprite::Slot> {
-        let Sprite { shape, id, .. } = new;
         self.sprites
-            .replace_id(old, *id, shape.tile_count())
+            .replace_id(old, new.id(), new.tile_count())
             // SAFETY: We assume that `Blocks::replace_id` implementation is correct,
             // and therefore an existing offset will always be bellow SPRITE_FULL_SIZE.
             .map(|offset| unsafe { sprite::Slot::new_unchecked(offset) })

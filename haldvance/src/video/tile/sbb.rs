@@ -184,7 +184,6 @@ pub struct AffineHandle<'a> {
 impl<'a> AffineHandle<'a> {
     /// Get the declared map size of this SBB.
     #[must_use]
-    #[inline]
     pub const fn size(&self) -> map::AffineSize {
         self.size
     }
