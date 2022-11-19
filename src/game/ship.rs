@@ -2,13 +2,16 @@
 use hal::{
     exec::ConsoleState,
     input::Key,
-    video::{self, mode, object, palette, Pos},
+    video::{self, mode, object, palette},
 };
 
+use crate::collide::{Collide, Shape};
 use crate::game::space::Bullet;
 use crate::{assets::players, game::Posi};
 
-const INITIAL_PLAYER_POS: Pos = Pos { x: 4, y: 52 };
+use super::space::items;
+
+const INITIAL_PLAYER_POS: Posi = Posi::new(4, 52);
 
 crate::cycling_enum! {
     #[derive(Clone, Copy, PartialEq, Eq)]
@@ -35,9 +38,18 @@ enum HitPoints {
     _2,
     _3,
 }
+impl HitPoints {
+    fn increment(&mut self) {
+        *self = match self {
+            Self::_0 => Self::_1,
+            Self::_1 => Self::_2,
+            Self::_2 | Self::_3 => Self::_3,
+        };
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
-pub(super) enum Weapon {
+pub(crate) enum Weapon {
     Standard,
     Double,
     Momentum,
@@ -74,8 +86,8 @@ impl FirePosition {
     }
 }
 #[derive(Debug)]
-pub(super) struct Player {
-    pub(super) pos: Pos,
+pub(crate) struct Player {
+    pub(super) pos: Posi,
     /// Last time player fired (for cooldown).
     next_fire_frame: usize,
     /// Last time the player was hit (for iframes).
@@ -85,7 +97,22 @@ pub(super) struct Player {
     pub(super) last_fire: FirePosition,
     slot: object::Slot,
 }
+impl Collide for Player {
+    fn shape(&self) -> Shape {
+        Shape::Rectangle { size: Posi::new(16, 16) }
+    }
+    fn pos(&self) -> Posi {
+        self.pos - Posi::new(8, 8)
+    }
+}
 impl Player {
+    pub(super) fn pick_up(&mut self, item: items::Kind) {
+        match item {
+            items::Kind::Weapon(weapon) => self.weapon = weapon,
+            items::Kind::LifeUp => self.life.increment(),
+        }
+    }
+
     pub(super) const fn strength(&self) -> u8 {
         match self.life {
             HitPoints::_0 => 1,
@@ -114,7 +141,7 @@ impl Player {
         let input = console.input;
         let frame = console.frame;
         let momentum: Posi = input.current().into();
-        self.pos = self.pos + momentum;
+        self.pos += momentum;
         if input.pressed(Key::A) && self.next_fire_frame < frame {
             let slot = console.reserve_object()?;
             self.next_fire_frame = frame + self.weapon.cooldown();
@@ -127,7 +154,9 @@ impl Player {
 
     pub(crate) fn draw(&self, ctrl: &mut video::Control<mode::Affine>) {
         let mut player = ctrl.object(&self.slot);
-        player.set_pos(self.pos);
+        if let Ok(pos) = self.pos.try_into() {
+            player.set_pos(pos);
+        }
     }
     pub(super) fn init_video(
         &self,
@@ -147,7 +176,9 @@ impl Player {
                 player.set_shape(*ship.sprite.shape());
                 player.set_palette_mode(palette::Type::Full);
                 player.set_visible(true);
-                player.set_pos(self.pos);
+                if let Ok(pos) = self.pos.try_into() {
+                    player.set_pos(pos);
+                }
             }
         }
     }

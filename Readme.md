@@ -169,9 +169,13 @@ C version)
 - [X] See player character (change depending on which selected)
 - [X] Move player character
 - [X] Player can shoot bullets
-  - [ ] Bullet speed is fixed point and generally can vary
-- [ ] random drop allowing to change weapon
-- [ ] random drops allowing to restore health
+- [X] random drop allowing to change weapon
+- [X] random drops allowing to restore health
+- [ ] Simple "lifetime collections" as tools for end-user games
+- [ ] Use slotmaps for object collections (probably from coca crate or derived
+      from it)
+- [ ] Create a game state transition managment system as tools for end-user games
+- [ ] `Posi` should use fixed-point decimals
 - [ ] Spawn Random enemies
 - [ ] Spawn enemies by wave
 - [ ] Cycle palette to give a shimering effect to bullets and background stars

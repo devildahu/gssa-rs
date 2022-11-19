@@ -6,7 +6,7 @@
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation
 )]
-use core::ops;
+use core::{num::TryFromIntError, ops};
 
 use const_default::ConstDefault;
 use hal::{
@@ -14,25 +14,32 @@ use hal::{
     video::Pos,
 };
 
-#[derive(Copy, Clone, PartialEq, Eq, ConstDefault)]
+use crate::collide::{Collide, Shape};
+
+// TODO: use Fixed point i32
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ConstDefault)]
 pub(crate) struct Posi {
     pub x: i32,
     pub y: i32,
 }
-impl Posi {
-    pub const fn within(&self, area: &Area) -> bool {
-        self.x > area.pos.x
-            && self.x < area.pos.x + area.rect.width as i32
-            && self.y > area.pos.y
-            && self.y < area.pos.y + area.rect.height as i32
-    }
+impl TryFrom<Posi> for Pos {
+    type Error = TryFromIntError;
 
+    fn try_from(Posi { x, y }: Posi) -> Result<Self, Self::Error> {
+        Ok(Pos { x: x.try_into()?, y: y.try_into()? })
+    }
+}
+impl Posi {
     pub(crate) const fn y(value: i32) -> Self {
         Self { x: 0, y: value }
     }
 
     pub(crate) const fn x(value: i32) -> Self {
         Self { x: value, y: 0 }
+    }
+
+    pub(crate) const fn new(x: i32, y: i32) -> Posi {
+        Self { x, y }
     }
 }
 impl From<Keys> for Posi {
@@ -50,11 +57,7 @@ impl From<Pos> for Posi {
         Posi { y: i32::from(y), x: i32::from(x) }
     }
 }
-impl From<Posi> for Pos {
-    fn from(Posi { x, y }: Posi) -> Pos {
-        Pos { y: y as u16, x: x as u16 }
-    }
-}
+
 impl ops::AddAssign for Posi {
     fn add_assign(&mut self, rhs: Posi) {
         *self = *self + rhs;
@@ -93,11 +96,15 @@ impl ops::Neg for Posi {
     }
 }
 
-pub(crate) struct Rect {
-    pub width: u32,
-    pub height: u32,
-}
 pub(crate) struct Area {
-    pub rect: Rect,
+    pub size: Posi,
     pub pos: Posi,
+}
+impl Collide for Area {
+    fn shape(&self) -> Shape {
+        Shape::Rectangle { size: self.size }
+    }
+    fn pos(&self) -> Posi {
+        self.pos
+    }
 }

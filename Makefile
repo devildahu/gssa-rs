@@ -1,6 +1,6 @@
-emulator = mgba -l 255
+emulator = mgba-qt -l 255
 TARGET = $(shell cargo metadata --format-version=1 | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p')
-build_flags = 
+build_flags =
 
 .DEFAULT_GOAL: check
 .PHONY: check

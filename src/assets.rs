@@ -52,6 +52,8 @@ pub(crate) mod space {
             palette!("pbull_lv3_pal.bin"),
         );
     }
+    /// The bullet tiles, includes player and enemy bullets.
+    pub(crate) const items: sprite::Sheet<7> = sprite_sheet!("powerups_til.bin");
     /// The space background tiles.
     pub(crate) const background: Tileset<colmod::Bit8> = tileset!("gamesetbg_til.bin");
     /// The palette for the space background.

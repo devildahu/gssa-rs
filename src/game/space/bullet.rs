@@ -2,6 +2,7 @@ use const_default::ConstDefault;
 use hal::video::{self, mode, object, object::sprite, palette};
 
 use crate::assets::space::bullets::Bullets;
+use crate::collide::{Collide, Shape};
 use crate::game::{ship::Player, ship::Weapon, Posi, SCREEN_AREA};
 
 pub(crate) struct Bullet {
@@ -9,6 +10,15 @@ pub(crate) struct Bullet {
     pos: Posi,
     damage: Damage,
     slot: object::Slot,
+}
+impl Collide for Bullet {
+    fn shape(&self) -> Shape {
+        Shape::Point
+    }
+
+    fn pos(&self) -> Posi {
+        self.pos
+    }
 }
 impl Bullet {
     pub(super) const fn into_slot(self) -> object::Slot {
@@ -34,7 +44,7 @@ impl Bullet {
                 Weapon::Momentum => Kind::Momentum { velocity },
                 Weapon::Charge => Kind::Charge { die_time: frame + 60 },
             },
-            pos: Posi::from(player.pos) + Posi::y(player.last_fire.flip()),
+            pos: player.pos + Posi::y(player.last_fire.flip()),
             damage: Damage(player.strength()),
         }
     }
@@ -44,26 +54,25 @@ impl Bullet {
             Kind::Momentum { velocity } => self.pos += velocity,
             Kind::Charge { .. } => {}
             Kind::Helix { spawn_time } => {
-                let offset = Posi {
-                    y: ((frame - spawn_time) % 64) as i32 - 32,
-                    x: 1,
-                };
+                let offset = Posi::new(((frame - spawn_time) % 64) as i32 - 32, 1);
                 self.pos += offset;
             }
         }
     }
-    pub(super) const fn should_die(&self, frame: usize) -> bool {
+    pub(super) fn should_die(&self, frame: usize) -> bool {
         if let Kind::Charge { die_time } = self.kind {
             if die_time < frame {
                 return true;
             }
         }
-        !self.pos.within(&SCREEN_AREA)
+        !SCREEN_AREA.overlaps(self)
     }
 
     pub(crate) fn draw(&self, ctrl: &mut video::Control<mode::Affine>) {
         let mut ctrl = ctrl.object(&self.slot);
-        ctrl.set_pos(self.pos.into());
+        if let Ok(pos) = self.pos.try_into() {
+            ctrl.set_pos(pos);
+        }
     }
     pub(crate) fn setup_video(
         &self,
@@ -71,7 +80,9 @@ impl Bullet {
         ctrl: &mut video::Control<mode::Affine>,
     ) {
         let mut ctrl = ctrl.object(&self.slot);
-        ctrl.set_pos(self.pos.into());
+        if let Ok(pos) = self.pos.try_into() {
+            ctrl.set_pos(pos);
+        }
         ctrl.set_sprite(sheet.get(Bullets::from(self.kind) as u16));
         ctrl.set_palette_mode(palette::Type::Full);
         ctrl.set_visible(true);

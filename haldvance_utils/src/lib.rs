@@ -8,5 +8,5 @@ compile_error!("Tests cannot be ran in thumbv4t mode, you should use the host's 
 mod bitset;
 mod block;
 
-pub use bitset::Bitset128;
+pub use bitset::{Bitset128, Bitset8};
 pub use block::Blocks;

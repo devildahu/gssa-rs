@@ -2,10 +2,11 @@
 #![no_std]
 #![no_main]
 #![warn(clippy::pedantic, clippy::nursery)]
-#![allow(clippy::redundant_pub_crate)]
+#![allow(clippy::redundant_pub_crate, clippy::match_bool)]
 #![feature(const_mut_refs, const_replace)]
 
 mod assets;
+mod collide;
 mod game;
 mod text;
 
@@ -57,10 +58,14 @@ impl GameState for State {
                             Some(slot) => slot,
                             None => return,
                         };
-                        let sprite = ctrl
+                        let bullets = ctrl
                             .load_sprite_sheet(console, &assets::space::bullets::tiles)
                             .unwrap();
-                        state.screen = Screen::Space(game::Space::start(ship, slot, sprite));
+                        let items = ctrl
+                            .load_sprite_sheet(console, &assets::space::items)
+                            .unwrap();
+                        state.screen =
+                            Screen::Space(game::Space::start(ship, slot, bullets, items));
                         if let Self { screen: Screen::Space(space) } = state {
                             space.setup_video(ctrl, console);
                         }

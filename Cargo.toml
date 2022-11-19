@@ -8,6 +8,7 @@ exclude = ["resources"]
 
 [features]
 default = ["log", "hal/sane_asserts"]
+cheat-powerups = []
 log = ["hal/log"]
 
 [dependencies]
@@ -17,6 +18,7 @@ hal = { version = "0.4", package = "haldvance", path = "haldvance", default-feat
 utils = { version = "0.4", package = "haldvance_utils", path = "haldvance_utils", default-features = false }
 gbassets = { version = "0.1", path = "gbassets" }
 const-default = { version = "1.0", default-features = false, features = ["derive"] }
+enumflags2 = { version = "0.7.5", default-features = false }
 
 [workspace]
 members = ["haldvance", "volmatrix", "gbassets", "include_const_aligned", "haldvance_utils"]

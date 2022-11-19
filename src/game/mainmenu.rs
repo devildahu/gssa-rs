@@ -278,7 +278,7 @@ pub(crate) fn init_menu(data: &mut MainMenuData, ctrl: &mut video::Control<mode:
                 space(5),
                 select(start_game, "Start Game!!"),
                 space(2),
-                select(ships, "Ship select"),
+                select(ships, "Ship Select"),
             ),
         )
     };
